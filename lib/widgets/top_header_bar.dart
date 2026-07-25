@@ -9,31 +9,65 @@ class TopHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: AppTextStyles.h1),
-              const SizedBox(height: 4),
-              Text(subtitle, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-            ],
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 600;
+      if (compact) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AppTextStyles.h1),
+            const SizedBox(height: 6),
+            Text(subtitle, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(child: const _SearchField()),
+                const SizedBox(width: AppSpacing.sm),
+                const _NotificationBell(),
+                const SizedBox(width: AppSpacing.sm),
+                const CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary,
+                  child: Text('AT', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ],
+        );
+      }
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.h1),
+                const SizedBox(height: 4),
+                Text(subtitle, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        const _SearchField(),
-        const SizedBox(width: AppSpacing.md),
-        const _NotificationBell(),
-        const SizedBox(width: AppSpacing.md),
-        const CircleAvatar(
-          radius: 19,
-          backgroundColor: AppColors.primary,
-          child: Text('AT', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-        ),
-      ],
-    );
+          const SizedBox(width: AppSpacing.lg),
+          Flexible(
+            fit: FlexFit.loose,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: const _SearchField(),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          const _NotificationBell(),
+          const SizedBox(width: AppSpacing.md),
+          const CircleAvatar(
+            radius: 19,
+            backgroundColor: AppColors.primary,
+            child: Text('AT', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      );
+    });
   }
 }
 
@@ -42,9 +76,9 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
+    return SizedBox(
       height: 42,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -69,7 +103,7 @@ class _SearchField extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

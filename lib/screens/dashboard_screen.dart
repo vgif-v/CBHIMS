@@ -26,8 +26,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final horizontalPadding = width < 520 ? 16.0 : 32.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -84,14 +87,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ];
 
-        final bool wide = constraints.maxWidth > 900;
-        if (!wide) {
+        if (constraints.maxWidth <= 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < cards.length; i++) ...[
+                cards[i],
+                if (i != cards.length - 1) const SizedBox(height: AppSpacing.md),
+              ],
+            ],
+          );
+        }
+
+        if (constraints.maxWidth <= 900) {
+          final itemWidth = (constraints.maxWidth - AppSpacing.md) / 2;
           return Wrap(
             spacing: AppSpacing.md,
             runSpacing: AppSpacing.md,
-            children: cards.map((c) => SizedBox(width: (constraints.maxWidth - AppSpacing.md) / 2, child: c)).toList(),
+            children: cards.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
           );
         }
+
         return Row(
           children: [
             for (int i = 0; i < cards.length; i++) ...[
@@ -137,13 +153,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Stock Movement', style: AppTextStyles.h3),
-              _buildRangeToggle(),
-            ],
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360;
+            return compact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Stock Movement', style: AppTextStyles.h3),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildRangeToggle(),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('Stock Movement', style: AppTextStyles.h3),
+                      _buildRangeToggle(),
+                    ],
+                  );
+          }),
           const SizedBox(height: 4),
           Text('Units moved in and out of the warehouse.', style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
@@ -296,17 +325,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Recent Transactions', style: AppTextStyles.h3),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                child: Text('View all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
-              ),
-            ],
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 420;
+            return compact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Recent Transactions', style: AppTextStyles.h3),
+                      const SizedBox(height: AppSpacing.sm),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                          child: Text('View all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Recent Transactions', style: AppTextStyles.h3),
+                      TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                        child: Text('View all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+                      ),
+                    ],
+                  );
+          }),
           const SizedBox(height: AppSpacing.sm),
           _TransactionsTable(transactions: MockData.transactions),
         ],
@@ -373,9 +421,11 @@ class _TransactionsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 700),
-        child: DataTable(
+      child: LayoutBuilder(builder: (context, constraints) {
+        final minW = constraints.maxWidth < 700 ? constraints.maxWidth : 700.0;
+        return ConstrainedBox(
+          constraints: BoxConstraints(minWidth: minW),
+          child: DataTable(
           headingRowColor: WidgetStateProperty.all(Colors.transparent),
           dividerThickness: 0.6,
           columnSpacing: 32,
@@ -417,8 +467,9 @@ class _TransactionsTable extends StatelessWidget {
               )),
             ]);
           }).toList(),
-        ),
-      ),
+          ),
+        );
+      }),
     );
   }
 }

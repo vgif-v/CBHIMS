@@ -73,7 +73,7 @@ class Sidebar extends StatelessWidget {
             child: const Icon(Icons.inventory_rounded, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 10),
-          Text('Stockpile', style: AppTextStyles.h3),
+          Text('CBHIMS', style: AppTextStyles.h3),
         ],
       ),
     );
@@ -113,7 +113,7 @@ class Sidebar extends StatelessWidget {
   }
 }
 
-class _NavTile extends StatefulWidget {
+class _NavTile extends StatelessWidget {
   final NavItem item;
   final bool selected;
   final VoidCallback onTap;
@@ -121,48 +121,34 @@ class _NavTile extends StatefulWidget {
   const _NavTile({required this.item, required this.selected, required this.onTap});
 
   @override
-  State<_NavTile> createState() => _NavTileState();
-}
-
-class _NavTileState extends State<_NavTile> {
-  bool _hovering = false;
-
-  @override
   Widget build(BuildContext context) {
-    final bool active = widget.selected;
-    final Color bg = active
-        ? AppColors.primarySoft
-        : (_hovering ? AppColors.background : Colors.transparent);
+    final bool active = selected;
+    final Color bg = active ? AppColors.primarySoft : Colors.transparent;
     final Color fg = active ? AppColors.primary : AppColors.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovering = true),
-        onExit: (_) => setState(() => _hovering = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-            ),
-            child: Row(
-              children: [
-                Icon(active ? widget.item.activeIcon : widget.item.icon, size: 19, color: fg),
-                const SizedBox(width: 12),
-                Text(
-                  widget.item.label,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: active ? AppColors.textPrimary : AppColors.textSecondary,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Row(
+            children: [
+              Icon(active ? item.activeIcon : item.icon, size: 19, color: fg),
+              const SizedBox(width: 12),
+              Text(
+                item.label,
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

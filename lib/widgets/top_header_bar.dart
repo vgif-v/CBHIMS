@@ -19,13 +19,13 @@ class TopHeaderBar extends StatelessWidget {
             const SizedBox(height: 6),
             Text(subtitle, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
             const SizedBox(height: AppSpacing.sm),
-            Row(
+            const Row(
               children: [
-                Expanded(child: const _SearchField()),
-                const SizedBox(width: AppSpacing.sm),
-                const _NotificationBell(),
-                const SizedBox(width: AppSpacing.sm),
-                const CircleAvatar(
+                Expanded(child: _SearchField()),
+                SizedBox(width: AppSpacing.sm),
+                _NotificationBell(),
+                SizedBox(width: AppSpacing.sm),
+                CircleAvatar(
                   radius: 16,
                   backgroundColor: AppColors.primary,
                   child: Text('AT', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),

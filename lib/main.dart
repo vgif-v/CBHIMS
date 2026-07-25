@@ -1,31 +1,21 @@
 import 'package:flutter/material.dart';
+import 'theme/app_theme.dart';
+import 'screens/main_layout_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const InventoryApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class InventoryApp extends StatelessWidget {
+  const InventoryApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Stockpile — Inventory Management',
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: GestureDetector(
-            onTap: () {
-              print("Clicked!");
-            },
-            child: Container(
-              height: 100,
-              width: 100,
-              color: Colors.pink[200],
-              child: Text("Click Me!"),
-            ),
-          ),
-        ),
-      ),
+      theme: buildAppTheme(),
+      home: const MainLayoutScreen(),
     );
   }
 }

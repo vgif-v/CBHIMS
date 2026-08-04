@@ -41,22 +41,10 @@ class MockData {
     OutboundOrder(orderId: 'SO-88011', destination: 'Meridian Retail Group', itemsCount: 33, dispatchDate: 'Jul 19, 2026', status: 'Delivered'),
   ];
 
-  static const List<Supplier> suppliers = [
-    Supplier(companyName: 'Nordic Supply Co.', contactPerson: 'Elin Karlsson', email: 'elin@nordicsupply.com', phone: '+46 8 123 4567', activeOrders: 4, initials: 'NS'),
-    Supplier(companyName: 'Pacific Office Goods', contactPerson: 'Marcus Tan', email: 'marcus@pacificog.com', phone: '+65 6789 0123', activeOrders: 2, initials: 'PO'),
-    Supplier(companyName: 'Summit Electronics Ltd.', contactPerson: 'Priya Nair', email: 'priya@summitelec.com', phone: '+91 22 4455 6677', activeOrders: 6, initials: 'SE'),
-    Supplier(companyName: 'Cascade Furnishings', contactPerson: 'Daniel Reyes', email: 'daniel@cascadefurn.com', phone: '+1 503 555 0148', activeOrders: 1, initials: 'CF'),
-    Supplier(companyName: 'Harborline Packaging', contactPerson: 'Sofia Moretti', email: 'sofia@harborline.com', phone: '+39 06 8765 4321', activeOrders: 3, initials: 'HP'),
-    Supplier(companyName: 'Atlas Freight Partners', contactPerson: 'James Whitfield', email: 'james@atlasfreight.com', phone: '+44 20 7946 0958', activeOrders: 5, initials: 'AF'),
-  ];
-
   static const List<ReportTemplate> reportTemplates = [
     ReportTemplate(title: 'Inventory Valuation Report', description: 'Current stock value by category and location.', icon: '💰'),
-    ReportTemplate(title: 'Stock Movement Log', description: 'Full history of inbound and outbound transactions.', icon: '🔄'),
     ReportTemplate(title: 'Low Stock Summary', description: 'Items at or below their reorder point.', icon: '⚠️'),
-    ReportTemplate(title: 'Supplier Performance', description: 'On-time delivery rates by supplier.', icon: '🤝'),
     ReportTemplate(title: 'Dead Stock Analysis', description: 'Products with no movement in 90+ days.', icon: '📉'),
-    ReportTemplate(title: 'Purchase Order History', description: 'All POs with fulfillment timelines.', icon: '🧾'),
   ];
 
   static const List<TeamMember> team = [

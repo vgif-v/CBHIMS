@@ -120,7 +120,7 @@ class _ProductTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 980),
+        constraints: const BoxConstraints(minWidth: 680),
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(Colors.transparent),
           dividerThickness: 0.6,
@@ -129,17 +129,16 @@ class _ProductTable extends StatelessWidget {
           headingTextStyle: AppTextStyles.label,
           dataTextStyle: AppTextStyles.body,
           columns: const [
-            DataColumn(label: Text('PRODUCT')),
             DataColumn(label: Text('SKU')),
+            DataColumn(label: Text('PRODUCT')),
             DataColumn(label: Text('CATEGORY')),
             DataColumn(label: Text('IN STOCK'), numeric: true),
-            DataColumn(label: Text('REORDER PT.'), numeric: true),
-            DataColumn(label: Text('UNIT PRICE'), numeric: true),
             DataColumn(label: Text('STATUS')),
             DataColumn(label: Text('')),
           ],
           rows: products.map((p) {
             return DataRow(cells: [
+              DataCell(Text(p.sku, style: AppTextStyles.mono)),
               DataCell(Row(
                 children: [
                   Container(
@@ -153,11 +152,8 @@ class _ProductTable extends StatelessWidget {
                   Text(p.name, style: AppTextStyles.bodyMedium),
                 ],
               )),
-              DataCell(Text(p.sku, style: AppTextStyles.mono)),
               DataCell(Text(p.category, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary))),
               DataCell(Text('${p.quantity}', style: AppTextStyles.bodyMedium)),
-              DataCell(Text('${p.reorderPoint}', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary))),
-              DataCell(Text('\$${p.unitPrice.toStringAsFixed(2)}', style: AppTextStyles.bodyMedium)),
               DataCell(_statusBadge(p)),
               DataCell(IconButton(
                 onPressed: () {},

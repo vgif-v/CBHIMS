@@ -12,9 +12,7 @@ class NavItem {
 const List<NavItem> kNavItems = [
   NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard_rounded),
   NavItem(label: 'Inventory', icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2_rounded),
-  NavItem(label: 'Inbound', icon: Icons.call_received_rounded, activeIcon: Icons.call_received_rounded),
-  NavItem(label: 'Outbound', icon: Icons.call_made_rounded, activeIcon: Icons.call_made_rounded),
-  NavItem(label: 'Suppliers', icon: Icons.groups_outlined, activeIcon: Icons.groups_rounded),
+  NavItem(label: 'Stock In/Out', icon: Icons.call_received_rounded, activeIcon: Icons.call_received_rounded),
   NavItem(label: 'Reports', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded),
   NavItem(label: 'Settings', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded),
 ];
@@ -64,16 +62,16 @@ class Sidebar extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(9),
             ),
-            child: const Icon(Icons.inventory_rounded, color: Colors.white, size: 18),
+            child: Image.asset('assets/images/clogo.png'),
           ),
           const SizedBox(width: 10),
-          Text('CBHIMS', style: AppTextStyles.h3),
+          Text('CBHIMS', style: AppTextStyles.h2),
         ],
       ),
     );
@@ -101,7 +99,7 @@ class Sidebar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Ava Thompson', style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis),
+                Text('Regielou', style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis),
                 Text('Admin', style: AppTextStyles.caption),
               ],
             ),

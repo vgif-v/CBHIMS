@@ -28,7 +28,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ScreenHeader(title: 'Settings', subtitle: 'Manage your workspace preferences and team.'),
+          const ScreenHeader(
+              title: 'Settings',
+              subtitle: 'Manage your workspace preferences and team.'),
           const SizedBox(height: AppSpacing.lg),
           _buildTabBar(),
           const SizedBox(height: AppSpacing.lg),
@@ -48,26 +50,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.border),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int i = 0; i < _tabs.length; i++)
-            GestureDetector(
-              onTap: () => setState(() => _tab = i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                  color: _tab == i ? AppColors.primarySoft : Colors.transparent,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Text(
-                  _tabs[i],
-                  style: AppTextStyles.bodyMedium.copyWith(color: _tab == i ? AppColors.primary : AppColors.textSecondary),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int i = 0; i < _tabs.length; i++)
+              GestureDetector(
+                onTap: () => setState(() => _tab = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color:
+                        _tab == i ? AppColors.primarySoft : Colors.transparent,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    _tabs[i],
+                    style: AppTextStyles.bodyMedium.copyWith(
+                        color: _tab == i
+                            ? AppColors.primary
+                            : AppColors.textSecondary),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -79,15 +89,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text('General', style: AppTextStyles.h3),
           const SizedBox(height: 4),
-          Text('Basic information about your workspace.', style: AppTextStyles.caption),
+          Text('Basic information about your workspace.',
+              style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
           _labeledField('App Name', 'Stockpile Warehouse'),
           const SizedBox(height: AppSpacing.md),
-          _labeledDropdown('Default Currency', 'USD — US Dollar', ['USD — US Dollar', 'EUR — Euro', 'GBP — British Pound', 'PHP — Philippine Peso']),
+          _labeledDropdown('Default Currency', 'USD — US Dollar', [
+            'USD — US Dollar',
+            'EUR — Euro',
+            'GBP — British Pound',
+            'PHP — Philippine Peso'
+          ]),
           const SizedBox(height: AppSpacing.md),
-          _labeledDropdown('Timezone', 'Asia/Manila (GMT+8)', ['Asia/Manila (GMT+8)', 'America/New_York (GMT-4)', 'Europe/London (GMT+1)']),
+          _labeledDropdown('Timezone', 'Asia/Manila (GMT+8)', [
+            'Asia/Manila (GMT+8)',
+            'America/New_York (GMT-4)',
+            'Europe/London (GMT+1)'
+          ]),
           const SizedBox(height: AppSpacing.lg),
-          Align(alignment: Alignment.centerLeft, child: PrimaryButton(label: 'Save Changes', onPressed: () {})),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: PrimaryButton(label: 'Save Changes', onPressed: () {})),
         ],
       ),
     );
@@ -107,7 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(AppRadius.sm),
             border: Border.all(color: AppColors.border),
           ),
-          child: Row(children: [Expanded(child: Text(value, style: AppTextStyles.body))]),
+          child: Row(children: [
+            Expanded(child: Text(value, style: AppTextStyles.body))
+          ]),
         ),
       ],
     );
@@ -131,9 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.expand_more_rounded, size: 18, color: AppColors.textSecondary),
+              icon: const Icon(Icons.expand_more_rounded,
+                  size: 18, color: AppColors.textSecondary),
               style: AppTextStyles.body,
-              items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+              items: options
+                  .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                  .toList(),
               onChanged: (_) {},
             ),
           ),
@@ -149,11 +176,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text('Notifications', style: AppTextStyles.h3),
           const SizedBox(height: 4),
-          Text('Choose what you want to be notified about.', style: AppTextStyles.caption),
+          Text('Choose what you want to be notified about.',
+              style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
           _toggleRow(
             title: 'Low Stock Alerts',
-            subtitle: 'Get notified when a product falls below its reorder point.',
+            subtitle:
+                'Get notified when a product falls below its reorder point.',
             value: _lowStockAlerts,
             onChanged: (v) => setState(() => _lowStockAlerts = v),
           ),
@@ -176,7 +205,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _toggleRow({required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _toggleRow(
+      {required String title,
+      required String subtitle,
+      required bool value,
+      required ValueChanged<bool> onChanged}) {
     return Row(
       children: [
         Expanded(
@@ -203,23 +236,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildUserManagement() {
     return SectionCard(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              bool isNarrow = constraints.maxWidth < 500;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('User Management', style: AppTextStyles.h3),
-                  const SizedBox(height: 4),
-                  Text('${MockData.team.length} team members.', style: AppTextStyles.caption),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('User Management', style: AppTextStyles.h3),
+                      const SizedBox(height: 4),
+                      Text('${MockData.team.length} team members.',
+                          style: AppTextStyles.caption),
+                    ],
+                  ),
+                  if (!isNarrow)
+                    PrimaryButton(
+                      label: 'Invite Member',
+                      icon: Icons.person_add_alt_rounded,
+                      onPressed: () {}
+                    ),
+                  if (isNarrow)
+                    FloatingActionButton.small(
+                      elevation: 0,
+                      onPressed: () {},
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      child: const Icon(Icons.person_add_alt_rounded, size: 20),
+                    ),
                 ],
-              ),
-              PrimaryButton(label: 'Invite Member', icon: Icons.person_add_alt_rounded, onPressed: () {}),
-            ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.lg),
           ...MockData.team.map((m) => _TeamMemberRow(member: m)),
@@ -256,7 +309,11 @@ class _TeamMemberRow extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.neutralSoft,
-            child: Text(member.initials, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+            child: Text(member.initials,
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -272,7 +329,8 @@ class _TeamMemberRow extends StatelessWidget {
           const SizedBox(width: 12),
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.more_horiz_rounded, size: 19, color: AppColors.textMuted),
+            icon: const Icon(Icons.more_horiz_rounded,
+                size: 19, color: AppColors.textMuted),
             splashRadius: 18,
           ),
         ],

@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
-import '../models/mock_data.dart';
-import '../models/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/buttons.dart';
 import '../widgets/section_card.dart';
+
+class ReportTemplate {
+  const ReportTemplate({required this.title, required this.description, required this.icon, required this.onDownload});
+
+  final String title;
+  final String description;
+  final String icon;
+  final Function() onDownload;
+}
+
+final List<ReportTemplate> reportTemplates = [
+    const ReportTemplate(title: 'Inventory Valuation Report', description: 'Current stock value by category and location.', icon: '💰', onDownload: downloadInventoryReport),
+    const ReportTemplate(title: 'Low Stock Summary', description: 'Items at or below their reorder point.', icon: '⚠️', onDownload: downloadLowStockSummary),
+    const ReportTemplate(title: 'Dead Stock Analysis', description: 'Products with no movement in 90+ days.', icon: '📉', onDownload: downloadDeadStockAnalysis),
+];
+
+void downloadInventoryReport() {
+  // Implement the logic to download the inventory report
+  print('Downloading Inventory Valuation Report...');
+}
+
+void downloadLowStockSummary() {
+  // Implement the logic to download the low stock summary
+  print('Downloading Low Stock Summary...');
+}
+
+void downloadDeadStockAnalysis() {
+  // Implement the logic to download the dead stock analysis
+  print('Downloading Dead Stock Analysis...');
+}
+
+void onDownloadReport(ReportTemplate report) {
+  report.onDownload();
+}
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -35,14 +67,14 @@ class ReportsScreen extends StatelessWidget {
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: MockData.reportTemplates.length,
+                itemCount: reportTemplates.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   crossAxisSpacing: AppSpacing.md,
                   mainAxisSpacing: AppSpacing.md,
                   childAspectRatio: 1.75,
                 ),
-                itemBuilder: (context, i) => _ReportCard(report: MockData.reportTemplates[i]),
+                itemBuilder: (context, i) => _ReportCard(report: reportTemplates[i]),
               );
             },
           ),
@@ -89,6 +121,7 @@ class ReportsScreen extends StatelessWidget {
 
 class _ReportCard extends StatelessWidget {
   final ReportTemplate report;
+  
   const _ReportCard({required this.report});
 
   @override
@@ -115,12 +148,15 @@ class _ReportCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Row(
-            children: [
-              Icon(Icons.download_rounded, size: 15, color: AppColors.primary),
-              const SizedBox(width: 6),
-              Text('Download', style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-            ],
+          GestureDetector(
+            onTap: report.onDownload,
+            child: Row(
+              children: [
+                const Icon(Icons.download_rounded, size: 15, color: Color.fromARGB(255, 88, 73, 255)),
+                const SizedBox(width: 6),
+                Text('Download', style: AppTextStyles.caption.copyWith(color: const Color.fromARGB(255, 88, 73, 255), fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
         ],
       ),

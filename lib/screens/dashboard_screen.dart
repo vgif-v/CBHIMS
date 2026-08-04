@@ -124,12 +124,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool wide = constraints.maxWidth > 900;
-        final chart = _buildStockMovementChart();
+        //final chart = _buildStockMovementChart();
         final actions = _buildQuickActions();
 
         if (!wide) {
           return Column(
-            children: [chart, const SizedBox(height: AppSpacing.md), actions],
+            children: [const SizedBox(height: AppSpacing.xs), actions],
           );
         }
 
@@ -137,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 2, child: chart),
+              //Expanded(flex: 2, child: chart),
               const SizedBox(width: AppSpacing.md),
               Expanded(flex: 1, child: actions),
             ],
@@ -184,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: 20,
-                  getDrawingHorizontalLine: (value) => FlLine(color: AppColors.divider, strokeWidth: 1),
+                  getDrawingHorizontalLine: (value) => const FlLine(color: AppColors.divider, strokeWidth: 1),
                 ),
                 titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
@@ -294,21 +294,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 4),
           Text('Common tasks, one tap away.', style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
-          _QuickActionButton(
+          const _QuickActionButton(
             icon: Icons.add_circle_rounded,
             label: 'Add Stock',
             iconColor: AppColors.primary,
             iconBg: AppColors.primarySoft,
           ),
           const SizedBox(height: AppSpacing.sm),
-          _QuickActionButton(
+          const _QuickActionButton(
             icon: Icons.sync_alt_rounded,
             label: 'Stock Transfer',
             iconColor: AppColors.success,
             iconBg: AppColors.successSoft,
           ),
           const SizedBox(height: AppSpacing.sm),
-          _QuickActionButton(
+          const _QuickActionButton(
             icon: Icons.assignment_outlined,
             label: 'Export Audit',
             iconColor: AppColors.warning,
@@ -356,7 +356,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   );
           }),
           const SizedBox(height: AppSpacing.sm),
-          _TransactionsTable(transactions: MockData.transactions),
+          const _TransactionsTable(transactions: MockData.transactions),
         ],
       ),
     );

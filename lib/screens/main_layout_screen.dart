@@ -3,9 +3,7 @@ import '../theme/app_theme.dart';
 import '../widgets/sidebar.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
-import 'inbound_screen.dart';
-import 'outbound_screen.dart';
-import 'suppliers_screen.dart';
+import 'stock_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart';
 
@@ -26,11 +24,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     DashboardScreen(),
     InventoryScreen(),
     InboundScreen(),
-    OutboundScreen(),
-    SuppliersScreen(),
     ReportsScreen(),
     SettingsScreen(),
   ];
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -77,3 +75,4 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     );
   }
 }
+

@@ -444,17 +444,11 @@ class _TransactionsTable extends StatelessWidget {
             return DataRow(cells: [
               DataCell(Row(
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
-                    child: Text(t.emoji, style: const TextStyle(fontSize: 15)),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(t.itemName, style: AppTextStyles.bodyMedium),
-                ],
-              )),
+                  const SizedBox(width: 8),
+                  Text(t.itemName, style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis, softWrap: false),
+                  ],
+                ),
+              ),
               DataCell(Text(t.sku, style: AppTextStyles.mono)),
               DataCell(StatusBadge(
                 label: inbound ? '+ Inbound' : '- Outbound',

@@ -84,25 +84,67 @@ class ReportsScreen extends StatelessWidget {
   }
 
   Widget _buildDateRangeBar() {
-    return SectionCard(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-      child: Row(
-        children: [
-          const Icon(Icons.date_range_rounded, size: 18, color: AppColors.textSecondary),
-          const SizedBox(width: 10),
-          Text('Date range:', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-          const SizedBox(width: 8),
-          _datePill('Jul 01, 2026'),
-          const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
-          const SizedBox(width: 8),
-          _datePill('Jul 25, 2026'),
-          const Spacer(),
-          SecondaryButton(label: 'Export CSV', icon: Icons.table_chart_outlined, onPressed: () {}),
-          const SizedBox(width: AppSpacing.sm),
-          PrimaryButton(label: 'Export PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () {}),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return constraints.maxWidth > 700 // Use the max width from constraints
+          ? SectionCard(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          child: Row(
+            children: [
+              const Icon(Icons.date_range_rounded, size: 18, color: AppColors.textSecondary),
+              const SizedBox(width: 10),
+              Text('Date range:', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+              const SizedBox(width: 8),
+              _datePill('Jul 01, 2026'),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
+              const SizedBox(width: 8),
+              _datePill('Jul 25, 2026'),
+              const Spacer(),
+              SecondaryButton(label: 'Export CSV', icon: Icons.table_chart_outlined, onPressed: () {}),
+              const SizedBox(width: AppSpacing.sm),
+              PrimaryButton(label: 'Export PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () {}),
+            ],
+          ),
+        )
+        :
+        SectionCard(
+          padding: const EdgeInsets.fromLTRB(12, AppSpacing.md, 16, AppSpacing.md),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.date_range_rounded, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 10),
+                  Text('Date range:', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                  const SizedBox(width: 8),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _datePill('Jul 01, 2026'),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 8),
+                  _datePill('Jul 25, 2026'),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SecondaryButton(label: 'Export CSV', icon: Icons.table_chart_outlined, onPressed: () {}),
+                  const SizedBox(width: AppSpacing.sm),
+                  PrimaryButton(label: 'Export PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () {}),
+                ]
+              ),
+            ],
+          ),
+        );
+      }
     );
   }
 

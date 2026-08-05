@@ -23,7 +23,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   static const List<Widget> _screens = [
     DashboardScreen(),
     InventoryScreen(),
-    InboundScreen(),
+    StockScreen(),
     ReportsScreen(),
     SettingsScreen(),
   ];

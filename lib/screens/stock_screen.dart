@@ -6,8 +6,8 @@ import '../widgets/buttons.dart';
 import '../widgets/section_card.dart';
 import '../widgets/status_badge.dart';
 
-class InboundScreen extends StatelessWidget {
-  const InboundScreen({super.key});
+class StockScreen extends StatelessWidget {
+  const StockScreen({super.key});
 
   BadgeTone _tone(String status) {
     switch (status) {
@@ -28,9 +28,9 @@ class InboundScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ScreenHeader(
-            title: 'Inbound',
-            subtitle: 'Purchase orders awaiting receipt into the warehouse.',
-            actions: [PrimaryButton(label: 'Receive Shipment', icon: Icons.call_received_rounded, onPressed: () {})],
+            title: 'Stock In/Out',
+            subtitle: 'Current inventory levels and stock status.',
+            actions: [PrimaryButton(label: 'Add Stock', icon: Icons.add_rounded, onPressed: () {})],
           ),
           const SizedBox(height: AppSpacing.lg),
           SectionCard(
@@ -47,9 +47,8 @@ class InboundScreen extends StatelessWidget {
                   headingTextStyle: AppTextStyles.label,
                   dataTextStyle: AppTextStyles.body,
                   columns: const [
-                    DataColumn(label: Text('PO NUMBER')),
-                    DataColumn(label: Text('SUPPLIER')),
-                    DataColumn(label: Text('EXPECTED DELIVERY')),
+                    DataColumn(label: Text('BILL NO.')),
+                    DataColumn(label: Text('NAME')),
                     DataColumn(label: Text('TOTAL ITEMS'), numeric: true),
                     DataColumn(label: Text('STATUS')),
                     DataColumn(label: Text('')),
@@ -58,7 +57,6 @@ class InboundScreen extends StatelessWidget {
                     return DataRow(cells: [
                       DataCell(Text(po.poNumber, style: AppTextStyles.mono.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600))),
                       DataCell(Text(po.supplier, style: AppTextStyles.bodyMedium)),
-                      DataCell(Text(po.expectedDate, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary))),
                       DataCell(Text('${po.totalItems}', style: AppTextStyles.bodyMedium)),
                       DataCell(StatusBadge(label: po.status, tone: _tone(po.status))),
                       DataCell(IconButton(

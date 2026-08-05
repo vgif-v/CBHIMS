@@ -172,13 +172,6 @@ class _ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(AppRadius.sm)),
-            child: Text(report.icon, style: const TextStyle(fontSize: 18)),
-          ),
           const SizedBox(height: AppSpacing.md),
           Text(report.title, style: AppTextStyles.bodyMedium),
           const SizedBox(height: 4),
@@ -192,12 +185,10 @@ class _ReportCard extends StatelessWidget {
           ),
           GestureDetector(
             onTap: report.onDownload,
-            child: Row(
-              children: [
-                const Icon(Icons.download_rounded, size: 15, color: Color.fromARGB(255, 88, 73, 255)),
-                const SizedBox(width: 6),
-                Text('Download', style: AppTextStyles.caption.copyWith(color: const Color.fromARGB(255, 88, 73, 255), fontWeight: FontWeight.w600)),
-              ],
+            child: PrimaryButton(
+              label: 'Download',
+              icon: Icons.download_rounded,
+              onPressed: report.onDownload,
             ),
           ),
         ],
@@ -205,3 +196,5 @@ class _ReportCard extends StatelessWidget {
     );
   }
 }
+
+

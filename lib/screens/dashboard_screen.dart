@@ -69,22 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             badgeText: 'Needs review',
             badgeTone: BadgeTone.warning,
           ),
-          const StatCard(
-            label: 'Total Inventory Value',
-            value: '\$284,500.00',
-            icon: Icons.payments_rounded,
-            iconColor: AppColors.success,
-            iconBg: AppColors.successSoft,
-          ),
-          const StatCard(
-            label: 'Pending Inbound',
-            value: '3',
-            icon: Icons.call_received_rounded,
-            iconColor: AppColors.textSecondary,
-            iconBg: AppColors.neutralSoft,
-            badgeText: 'In progress',
-            badgeTone: BadgeTone.neutral,
-          ),
         ];
 
         if (constraints.maxWidth <= 520) {
@@ -144,144 +128,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildStockMovementChart() {
-    final data = _rangeData[_rangeIndex];
-    return SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LayoutBuilder(builder: (context, constraints) {
-            final compact = constraints.maxWidth < 360;
-            return compact
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Stock Movement', style: AppTextStyles.h3),
-                      const SizedBox(height: AppSpacing.sm),
-                      _buildRangeToggle(),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text('Stock Movement', style: AppTextStyles.h3),
-                      _buildRangeToggle(),
-                    ],
-                  );
-          }),
-          const SizedBox(height: 4),
-          Text('Units moved in and out of the warehouse.', style: AppTextStyles.caption),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            height: 220,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 20,
-                  getDrawingHorizontalLine: (value) => const FlLine(color: AppColors.divider, strokeWidth: 1),
-                ),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineTouchData: LineTouchData(
-                  handleBuiltInTouches: true,
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => AppColors.textPrimary,
-                    tooltipRoundedRadius: 8,
-                    getTooltipItems: (spots) => spots
-                        .map((s) => LineTooltipItem('${s.y.toInt()} units', const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)))
-                        .toList(),
-                  ),
-                ),
-                minY: 0,
-                maxY: 90,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: [for (int i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i])],
-                    isCurved: true,
-                    curveSmoothness: 0.3,
-                    color: AppColors.primary,
-                    barWidth: 2.5,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.14),
-                          AppColors.primary.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              _legendDot(AppColors.primary, 'Units moved'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _legendDot(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(label, style: AppTextStyles.caption),
-      ],
-    );
-  }
-
-  Widget _buildRangeToggle() {
-    const labels = ['7D', '30D', '90D'];
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int i = 0; i < labels.length; i++)
-            GestureDetector(
-              onTap: () => setState(() => _rangeIndex = i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _rangeIndex == i ? AppColors.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: _rangeIndex == i
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
-                      : null,
-                ),
-                child: Text(
-                  labels[i],
-                  style: AppTextStyles.caption.copyWith(
-                    color: _rangeIndex == i ? AppColors.textPrimary : AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -426,8 +272,9 @@ class _TransactionsTable extends StatelessWidget {
         return ConstrainedBox(
           constraints: BoxConstraints(minWidth: minW),
           child: DataTable(
+          dataRowMaxHeight: double.infinity,
           headingRowColor: WidgetStateProperty.all(Colors.transparent),
-          dividerThickness: 0.6,
+          dividerThickness: 1,
           columnSpacing: 32,
           horizontalMargin: 4,
           headingTextStyle: AppTextStyles.label,
@@ -444,9 +291,13 @@ class _TransactionsTable extends StatelessWidget {
             return DataRow(cells: [
               DataCell(Row(
                 children: [
-                  const SizedBox(width: 8),
-                  Text(t.itemName, style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis, softWrap: false),
-                  ],
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 4),
+                    child: SizedBox(width:150,
+                      child: Text(t.itemName, style: AppTextStyles.bodyMedium),
+                    ),
+                  ),
+                ],
                 ),
               ),
               DataCell(Text(t.sku, style: AppTextStyles.mono)),

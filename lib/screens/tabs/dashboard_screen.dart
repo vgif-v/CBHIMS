@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../models/mock_data.dart';
-import '../models/models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/section_card.dart';
-import '../widgets/stat_card.dart';
-import '../widgets/status_badge.dart';
-import '../widgets/top_header_bar.dart';
+import '../../models/mock_data.dart';
+import '../../models/models.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/stat_card.dart';
+import '../../widgets/status_badge.dart';
+import '../../widgets/top_header_bar.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,13 +15,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _rangeIndex = 1; // 0=7D, 1=30D, 2=90D
-
-  static const List<List<double>> _rangeData = [
-    [40, 55, 48, 62, 58, 70, 65],
-    [30, 42, 38, 55, 48, 60, 52, 65, 58, 70, 66, 78],
-    [20, 35, 28, 45, 38, 52, 44, 58, 50, 64, 56, 70, 62, 75],
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -281,10 +273,8 @@ class _TransactionsTable extends StatelessWidget {
           dataTextStyle: AppTextStyles.body,
           columns: const [
             DataColumn(label: Text('ITEM NAME')),
-            DataColumn(label: Text('SKU')),
             DataColumn(label: Text('TYPE')),
             DataColumn(label: Text('DATE')),
-            DataColumn(label: Text('STATUS')),
           ],
           rows: transactions.map((t) {
             final inbound = t.type == TxnType.inbound;
@@ -293,23 +283,18 @@ class _TransactionsTable extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 4, bottom: 4),
-                    child: SizedBox(width:150,
+                    child: SizedBox(width:200,
                       child: Text(t.itemName, style: AppTextStyles.bodyMedium),
                     ),
                   ),
                 ],
                 ),
               ),
-              DataCell(Text(t.sku, style: AppTextStyles.mono)),
               DataCell(StatusBadge(
                 label: inbound ? '+ Inbound' : '- Outbound',
                 tone: inbound ? BadgeTone.success : BadgeTone.info,
               )),
               DataCell(Text(t.date, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary))),
-              DataCell(StatusBadge(
-                label: t.status,
-                tone: t.status == 'Completed' ? BadgeTone.success : BadgeTone.neutral,
-              )),
             ]);
           }).toList(),
           ),

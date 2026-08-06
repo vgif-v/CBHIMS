@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/sidebar.dart';
-import 'dashboard_screen.dart';
-import 'inventory_screen.dart';
-import 'stock_screen.dart';
-import 'reports_screen.dart';
-import 'settings_screen.dart';
+import 'tabs/dashboard_screen.dart';
+import 'tabs/inventory_screen.dart';
+import 'tabs/transactions_screen.dart';
+import 'tabs/reports_screen.dart';
+import 'tabs/settings_screen.dart';
 
 /// The persistent app shell: a fixed sidebar on the left and a main
 /// content area on the right that swaps screens based on the active
@@ -23,7 +23,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   static const List<Widget> _screens = [
     DashboardScreen(),
     InventoryScreen(),
-    StockScreen(),
+    TransactionsScreen(),
     ReportsScreen(),
     SettingsScreen(),
   ];

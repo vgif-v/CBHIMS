@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/mock_data.dart';
-import '../models/models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/buttons.dart';
-import '../widgets/section_card.dart';
-import '../widgets/status_badge.dart';
+import '../../models/mock_data.dart';
+import '../../models/models.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/buttons.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/status_badge.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -86,26 +86,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('General', style: AppTextStyles.h3),
           const SizedBox(height: 4),
           Text('Basic information about your workspace.',
               style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
-          _labeledField('App Name', 'Stockpile Warehouse'),
-          const SizedBox(height: AppSpacing.md),
-          _labeledDropdown('Default Currency', 'USD — US Dollar', [
-            'USD — US Dollar',
-            'EUR — Euro',
-            'GBP — British Pound',
-            'PHP — Philippine Peso'
-          ]),
-          const SizedBox(height: AppSpacing.md),
-          _labeledDropdown('Timezone', 'Asia/Manila (GMT+8)', [
-            'Asia/Manila (GMT+8)',
-            'America/New_York (GMT-4)',
-            'Europe/London (GMT+1)'
-          ]),
+          Text(
+            'App Name',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          ),
+          TextField(
+            controller: TextEditingController(text: 'CBHIMS'),
+            style: AppTextStyles.body,
+            decoration: InputDecoration(
+              hintText: 'Enter app name',
+              hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Align(
               alignment: Alignment.centerLeft,
@@ -225,7 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.white,
+          activeThumbColor: Colors.white,
           activeTrackColor: AppColors.primary,
           inactiveThumbColor: Colors.white,
           inactiveTrackColor: AppColors.border,

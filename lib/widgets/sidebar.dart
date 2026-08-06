@@ -12,7 +12,7 @@ class NavItem {
 const List<NavItem> kNavItems = [
   NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard_rounded),
   NavItem(label: 'Inventory', icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2_rounded),
-  NavItem(label: 'Stock In/Out', icon: Icons.call_received_rounded, activeIcon: Icons.call_received_rounded),
+  NavItem(label: 'Transactions', icon: Icons.call_received_rounded, activeIcon: Icons.call_received_rounded),
   NavItem(label: 'Reports', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded),
   NavItem(label: 'Settings', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded),
 ];

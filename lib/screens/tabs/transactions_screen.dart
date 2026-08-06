@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../models/mock_data.dart';
-import '../models/models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/buttons.dart';
-import '../widgets/section_card.dart';
-import '../widgets/status_badge.dart';
+import '../../models/mock_data.dart';
+import '../../models/models.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/buttons.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/status_badge.dart';
 
-class StockScreen extends StatelessWidget {
-  const StockScreen({super.key});
+class TransactionsScreen extends StatelessWidget {
+  const TransactionsScreen({super.key});
 
   BadgeTone _tone(String status) {
     switch (status) {
@@ -16,7 +16,7 @@ class StockScreen extends StatelessWidget {
       case 'In-Transit':
         return BadgeTone.info;
       default:
-        return BadgeTone.warning;
+        return BadgeTone.neutral;
     }
   }
 
@@ -28,8 +28,8 @@ class StockScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ScreenHeader(
-            title: 'Stock In/Out',
-            subtitle: 'Current inventory levels and stock status.',
+            title: 'Transactions',
+            subtitle: 'View and manage all stock transactions',
             actions: [PrimaryButton(label: 'Add Stock', icon: Icons.add_rounded, onPressed: () {})],
           ),
           const SizedBox(height: AppSpacing.lg),

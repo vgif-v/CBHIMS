@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../widgets/buttons.dart';
-import '../widgets/section_card.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/buttons.dart';
+import '../../widgets/section_card.dart';
 
 class ReportTemplate {
   const ReportTemplate({required this.title, required this.description, required this.icon, required this.onDownload});

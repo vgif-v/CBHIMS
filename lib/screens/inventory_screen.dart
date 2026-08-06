@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/mock_data.dart';
-import '../../models/models.dart';
-import '../../theme/app_theme.dart';
-import '../../widgets/buttons.dart';
-import '../../widgets/section_card.dart';
-import '../../widgets/status_badge.dart';
+import '../models/mock_data.dart';
+import '../models/models.dart';
+import '../theme/app_theme.dart';
+import '../widgets/buttons.dart';
+import '../widgets/section_card.dart';
+import '../widgets/status_badge.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -23,25 +23,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     'Office Supplies',
     'Packaging'
   ];
-
-  void _addProduct() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context){
-        return const SizedBox(
-          height: 400,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text("Add New Product"),
-
-            ]
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +43,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               PrimaryButton(
                   label: 'Add New Product',
                   icon: Icons.add_rounded,
-                  onPressed: _addProduct)
+                  onPressed: () {})
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -137,9 +118,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 }
 
-class _ProductTable extends StatelessWidget {
+class _ProductTable extends StatefulWidget {
   final List<Product> products;
   const _ProductTable({required this.products});
+
+  @override
+  State<_ProductTable> createState() => _ProductTableState();
+}
+
+class _ProductTableState extends State<_ProductTable> {
+  bool _showSkuColumn = false;
 
   StatusBadge _statusBadge(Product p) {
     switch (p.status) {
@@ -156,51 +144,72 @@ class _ProductTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 680),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.transparent),
-          dividerThickness: 1,
-          dataRowMaxHeight: double.infinity,
-          columnSpacing: 28,
-          horizontalMargin: 4,
-          headingTextStyle: AppTextStyles.label,
-          dataTextStyle: AppTextStyles.body,
-          columns: const [
-            DataColumn(label: Text('PRODUCT')),
-            DataColumn(label: Text('CATEGORY')),
-            DataColumn(label: Text('IN STOCK'), numeric: true),
-            DataColumn(label: Text('STATUS')),
-            DataColumn(label: Text('')),
-          ],
-          rows: products.map((p) {
-            return DataRow(cells: [
-              DataCell(Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 4),
-                    child: SizedBox(
-                      width: 200,
-                      child: Text(p.name, style: AppTextStyles.bodyMedium),
-                    ),
-                  ),
-                ],
-              )),
-              DataCell(Text(p.category,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary))),
-              DataCell(
-                  Text('${p.quantity}', style: AppTextStyles.bodyMedium)),
-              DataCell(_statusBadge(p)),
-              DataCell(IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.more_horiz_rounded,
-                    size: 19, color: AppColors.textMuted),
-                splashRadius: 18,
-              )),
-            ]);
-          }).toList(),
-        ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _showSkuColumn = !_showSkuColumn),
+            child: Column(
+              children: [
+                Checkbox(
+                  value: _showSkuColumn,
+                  onChanged: (v) =>
+                      setState(() => _showSkuColumn = v ?? _showSkuColumn),
+                ),
+                const SizedBox(width: 4),
+                const Text('Show SKU column'),
+              ],
+            ),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 680),
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(Colors.transparent),
+              dividerThickness: 1,
+              dataRowMaxHeight: double.infinity,
+              columnSpacing: 28,
+              horizontalMargin: 4,
+              headingTextStyle: AppTextStyles.label,
+              dataTextStyle: AppTextStyles.body,
+              columns: [
+                if (_showSkuColumn) const DataColumn(label: Text('SKU')),
+                const DataColumn(label: Text('PRODUCT')),
+                const DataColumn(label: Text('CATEGORY')),
+                const DataColumn(label: Text('IN STOCK'), numeric: true),
+                const DataColumn(label: Text('STATUS')),
+                const DataColumn(label: Text('')),
+              ],
+              rows: widget.products.map((p) {
+                return DataRow(cells: [
+                  if (_showSkuColumn)
+                    DataCell(Text(p.sku, style: AppTextStyles.mono)),
+                  DataCell(Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 4),
+                        child: SizedBox(
+                          width: 200,
+                          child: Text(p.name, style: AppTextStyles.bodyMedium),
+                        ),
+                      ),
+                    ],
+                  )),
+                  DataCell(Text(p.category,
+                      style: AppTextStyles.body
+                          .copyWith(color: AppColors.textSecondary))),
+                  DataCell(
+                      Text('${p.quantity}', style: AppTextStyles.bodyMedium)),
+                  DataCell(_statusBadge(p)),
+                  DataCell(IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.more_horiz_rounded,
+                        size: 19, color: AppColors.textMuted),
+                    splashRadius: 18,
+                  )),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

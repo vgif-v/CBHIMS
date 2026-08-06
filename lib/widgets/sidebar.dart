@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 
 class NavItem {
   final String label;
@@ -78,6 +79,17 @@ class Sidebar extends StatelessWidget {
   }
 
   Widget _buildUserFooter() {
+    final auth = AuthService.instance;
+    final name = auth.displayName;
+    final email = auth.email;
+    // Build initials from the display name (up to 2 letters).
+    final initials = name
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .take(2)
+        .map((w) => w[0].toUpperCase())
+        .join();
+
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(10),
@@ -88,10 +100,16 @@ class Sidebar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primary,
-            child: Text('AT', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+            child: Text(
+              initials.isNotEmpty ? initials : 'U',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -99,12 +117,49 @@ class Sidebar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Regielou', style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis),
-                Text('Admin', style: AppTextStyles.caption),
+                Text(name,
+                    style: AppTextStyles.bodyMedium,
+                    overflow: TextOverflow.ellipsis),
+                Text(email,
+                    style: AppTextStyles.caption,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          const Icon(Icons.more_horiz_rounded, size: 18, color: AppColors.textMuted),
+          // Logout menu
+          Builder(
+            builder: (ctx) => GestureDetector(
+              onTap: () async {
+                final shouldLogout = await showMenu<bool>(
+                  context: ctx,
+                  position: RelativeRect.fromLTRB(200, 0, 0, 0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  items: [
+                    PopupMenuItem<bool>(
+                      value: true,
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout_rounded,
+                              size: 18, color: AppColors.danger),
+                          const SizedBox(width: 8),
+                          Text('Logout',
+                              style: AppTextStyles.body
+                                  .copyWith(color: AppColors.danger)),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+                if (shouldLogout == true) {
+                  await AuthService.instance.signOut();
+                }
+              },
+              child: const Icon(Icons.more_horiz_rounded,
+                  size: 18, color: AppColors.textMuted),
+            ),
+          ),
         ],
       ),
     );
@@ -139,11 +194,15 @@ class _NavTile extends StatelessWidget {
             children: [
               Icon(active ? item.activeIcon : item.icon, size: 19, color: fg),
               const SizedBox(width: 12),
-              Text(
-                item.label,
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: active ? AppColors.textPrimary : AppColors.textSecondary,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+              Expanded(
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],

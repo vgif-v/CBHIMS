@@ -28,8 +28,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     SettingsScreen(),
   ];
 
-  
-
   @override
   Widget build(BuildContext context) {
     final bool showSidebarInline = MediaQuery.of(context).size.width >= 900;
@@ -53,7 +51,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               backgroundColor: AppColors.surface,
               elevation: 0,
               foregroundColor: AppColors.textPrimary,
-              title: Text(kNavItems[_selectedIndex].label, style: AppTextStyles.h3),
+              title: Text(kNavItems[_selectedIndex].label,
+                  style: AppTextStyles.h3),
             ),
       body: Row(
         children: [
@@ -63,7 +62,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               onSelect: (i) => setState(() => _selectedIndex = i),
             ),
           if (showSidebarInline)
-            const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+            const VerticalDivider(
+                width: 1, thickness: 1, color: AppColors.border),
           Expanded(
             child: Container(
               color: AppColors.background,
@@ -75,4 +75,3 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     );
   }
 }
-

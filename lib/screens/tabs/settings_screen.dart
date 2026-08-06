@@ -107,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fillColor: AppColors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide(color: AppColors.border),
+                borderSide: const BorderSide(color: AppColors.border),
               ),
             ),
           ),
@@ -117,60 +117,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: PrimaryButton(label: 'Save Changes', onPressed: () {})),
         ],
       ),
-    );
-  }
-
-  Widget _labeledField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTextStyles.label),
-        const SizedBox(height: 8),
-        Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(children: [
-            Expanded(child: Text(value, style: AppTextStyles.body))
-          ]),
-        ),
-      ],
-    );
-  }
-
-  Widget _labeledDropdown(String label, String value, List<String> options) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTextStyles.label),
-        const SizedBox(height: 8),
-        Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.expand_more_rounded,
-                  size: 18, color: AppColors.textSecondary),
-              style: AppTextStyles.body,
-              items: options
-                  .map((o) => DropdownMenuItem(value: o, child: Text(o)))
-                  .toList(),
-              onChanged: (_) {},
-            ),
-          ),
-        ),
-      ],
     );
   }
 

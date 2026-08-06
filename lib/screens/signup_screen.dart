@@ -66,8 +66,8 @@ class _SignupScreenState extends State<SignupScreen>
       // Show success and return to login
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-              'Account created successfully! You can now sign in.'),
+          content:
+              const Text('Account created successfully! You can now sign in.'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -90,7 +90,8 @@ class _SignupScreenState extends State<SignupScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('An unexpected error occurred. Please try again.'),
+          content:
+              const Text('An unexpected error occurred. Please try again.'),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -106,7 +107,6 @@ class _SignupScreenState extends State<SignupScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 720;
-    final cardPadding = size.width < 400 ? 20.0 : (isWide ? 36.0 : 24.0);
 
     return Scaffold(
       body: Container(
@@ -129,8 +129,8 @@ class _SignupScreenState extends State<SignupScreen>
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 48 : 16,
-                vertical: 24,
+                horizontal: isWide ? 48 : 24,
+                vertical: 32,
               ),
               child: FadeTransition(
                 opacity: _fadeAnim,
@@ -138,7 +138,7 @@ class _SignupScreenState extends State<SignupScreen>
                   position: _slideAnim,
                   child: Container(
                     width: isWide ? 440 : double.infinity,
-                    padding: EdgeInsets.all(cardPadding),
+                    padding: const EdgeInsets.all(36),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(24),
@@ -165,11 +165,11 @@ class _SignupScreenState extends State<SignupScreen>
                         children: [
                           // ── Logo ──
                           Container(
-                            width: 72,
-                            height: 72,
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
                                   color:
@@ -180,18 +180,18 @@ class _SignupScreenState extends State<SignupScreen>
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                               child: Image.asset(
                                 'assets/images/clogo.png',
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
                           // ── Brand ──
                           Text('CBHIMS', style: AppTextStyles.h1),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             'Create your account',
                             style: AppTextStyles.caption.copyWith(
@@ -199,7 +199,7 @@ class _SignupScreenState extends State<SignupScreen>
                               fontSize: 13,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
 
                           // ── Full Name ──
                           _buildTextField(
@@ -214,7 +214,7 @@ class _SignupScreenState extends State<SignupScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
 
                           // ── Email ──
                           _buildTextField(
@@ -234,7 +234,7 @@ class _SignupScreenState extends State<SignupScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
 
                           // ── Password ──
                           _buildTextField(
@@ -264,7 +264,7 @@ class _SignupScreenState extends State<SignupScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
 
                           // ── Confirm Password ──
                           _buildTextField(
@@ -294,12 +294,12 @@ class _SignupScreenState extends State<SignupScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 28),
 
                           // ── Create Account button ──
                           SizedBox(
                             width: double.infinity,
-                            height: 48,
+                            height: 50,
                             child: ElevatedButton(
                               onPressed: _loading ? null : _handleSignUp,
                               style: ElevatedButton.styleFrom(
@@ -332,12 +332,11 @@ class _SignupScreenState extends State<SignupScreen>
                                     ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
 
                           // ── Sign-in link ──
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 'Already have an account? ',
@@ -392,10 +391,8 @@ class _SignupScreenState extends State<SignupScreen>
           style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle:
-                AppTextStyles.body.copyWith(color: AppColors.textMuted),
-            prefixIcon:
-                Icon(icon, size: 20, color: AppColors.textMuted),
+            hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+            prefixIcon: Icon(icon, size: 20, color: AppColors.textMuted),
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: AppColors.background,
@@ -411,8 +408,7 @@ class _SignupScreenState extends State<SignupScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -420,8 +416,7 @@ class _SignupScreenState extends State<SignupScreen>
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColors.danger, width: 1.5),
+              borderSide: BorderSide(color: AppColors.danger, width: 1.5),
             ),
           ),
         ),

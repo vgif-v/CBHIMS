@@ -73,7 +73,8 @@ class _LoginScreenState extends State<LoginScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('An unexpected error occurred. Please try again.'),
+          content:
+              const Text('An unexpected error occurred. Please try again.'),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -89,7 +90,6 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 720;
-    final cardPadding = size.width < 400 ? 20.0 : (isWide ? 36.0 : 24.0);
 
     return Scaffold(
       body: Container(
@@ -112,8 +112,8 @@ class _LoginScreenState extends State<LoginScreen>
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 48 : 16,
-                vertical: 24,
+                horizontal: isWide ? 48 : 24,
+                vertical: 32,
               ),
               child: FadeTransition(
                 opacity: _fadeAnim,
@@ -121,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen>
                   position: _slideAnim,
                   child: Container(
                     width: isWide ? 440 : double.infinity,
-                    padding: EdgeInsets.all(cardPadding),
+                    padding: const EdgeInsets.all(36),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(24),
@@ -148,11 +148,11 @@ class _LoginScreenState extends State<LoginScreen>
                         children: [
                           // ── Logo ──
                           Container(
-                            width: 72,
-                            height: 72,
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                               boxShadow: [
                                 BoxShadow(
                                   color:
@@ -163,27 +163,26 @@ class _LoginScreenState extends State<LoginScreen>
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(18),
                               child: Image.asset(
                                 'assets/images/clogo.png',
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
                           // ── Brand ──
                           Text('CBHIMS', style: AppTextStyles.h1),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             'Inventory Management System',
-                            textAlign: TextAlign.center,
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.textSecondary,
                               fontSize: 13,
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 36),
 
                           // ── Section label ──
                           Align(
@@ -195,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
                           // ── Email ──
                           _buildTextField(
@@ -245,12 +244,12 @@ class _LoginScreenState extends State<LoginScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 28),
 
                           // ── Sign In button ──
                           SizedBox(
                             width: double.infinity,
-                            height: 48,
+                            height: 50,
                             child: ElevatedButton(
                               onPressed: _loading ? null : _handleSignIn,
                               style: ElevatedButton.styleFrom(
@@ -283,12 +282,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
 
                           // ── Sign-up link ──
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 "Don't have an account? ",
@@ -349,10 +347,8 @@ class _LoginScreenState extends State<LoginScreen>
           style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle:
-                AppTextStyles.body.copyWith(color: AppColors.textMuted),
-            prefixIcon:
-                Icon(icon, size: 20, color: AppColors.textMuted),
+            hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+            prefixIcon: Icon(icon, size: 20, color: AppColors.textMuted),
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: AppColors.background,
@@ -368,8 +364,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -377,8 +372,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: AppColors.danger, width: 1.5),
+              borderSide: BorderSide(color: AppColors.danger, width: 1.5),
             ),
           ),
         ),

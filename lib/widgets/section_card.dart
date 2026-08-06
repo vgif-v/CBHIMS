@@ -27,49 +27,37 @@ class SectionCard extends StatelessWidget {
   }
 }
 
+/// Standard heading row used at the top of most screens:
+/// a title + optional subtitle on the left, actions on the right.
 class ScreenHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final List<Widget> actions;
 
-  const ScreenHeader({super.key, required this.title, this.subtitle, this.actions = const []});
+  const ScreenHeader(
+      {super.key, required this.title, this.subtitle, this.actions = const []});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isNarrow = constraints.maxWidth < 600;
-      if (isNarrow && actions.isNotEmpty) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: AppTextStyles.h1),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(subtitle!, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-            ],
-            const SizedBox(height: 12),
-            Wrap(spacing: AppSpacing.sm, runSpacing: AppSpacing.sm, children: actions),
-          ],
-        );
-      }
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.h1),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-                ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTextStyles.h1),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(subtitle!,
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.textSecondary)),
               ],
-            ),
+            ],
           ),
-          if (actions.isNotEmpty) Wrap(spacing: AppSpacing.sm, runSpacing: AppSpacing.sm, children: actions),
-        ],
-      );
-    });
+        ),
+        if (actions.isNotEmpty) Wrap(spacing: AppSpacing.sm, children: actions),
+      ],
+    );
   }
 }

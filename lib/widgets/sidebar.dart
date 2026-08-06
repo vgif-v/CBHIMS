@@ -7,22 +7,39 @@ class NavItem {
   final IconData icon;
   final IconData activeIcon;
 
-  const NavItem({required this.label, required this.icon, required this.activeIcon});
+  const NavItem(
+      {required this.label, required this.icon, required this.activeIcon});
 }
 
 const List<NavItem> kNavItems = [
-  NavItem(label: 'Dashboard', icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard_rounded),
-  NavItem(label: 'Inventory', icon: Icons.inventory_2_outlined, activeIcon: Icons.inventory_2_rounded),
-  NavItem(label: 'Transactions', icon: Icons.call_received_rounded, activeIcon: Icons.call_received_rounded),
-  NavItem(label: 'Reports', icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded),
-  NavItem(label: 'Settings', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded),
+  NavItem(
+      label: 'Dashboard',
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard_rounded),
+  NavItem(
+      label: 'Inventory',
+      icon: Icons.inventory_2_outlined,
+      activeIcon: Icons.inventory_2_rounded),
+  NavItem(
+      label: 'Transactions',
+      icon: Icons.call_received_rounded,
+      activeIcon: Icons.call_received_rounded),
+  NavItem(
+      label: 'Reports',
+      icon: Icons.bar_chart_outlined,
+      activeIcon: Icons.bar_chart_rounded),
+  NavItem(
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings_rounded),
 ];
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
-  const Sidebar({super.key, required this.selectedIndex, required this.onSelect});
+  const Sidebar(
+      {super.key, required this.selectedIndex, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +188,8 @@ class _NavTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavTile({required this.item, required this.selected, required this.onTap});
+  const _NavTile(
+      {required this.item, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -194,15 +212,12 @@ class _NavTile extends StatelessWidget {
             children: [
               Icon(active ? item.activeIcon : item.icon, size: 19, color: fg),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: active ? AppColors.textPrimary : AppColors.textSecondary,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  ),
+              Text(
+                item.label,
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color:
+                      active ? AppColors.textPrimary : AppColors.textSecondary,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
             ],

@@ -32,6 +32,10 @@ const List<NavItem> kNavItems = [
       label: 'Settings',
       icon: Icons.settings_outlined,
       activeIcon: Icons.settings_rounded),
+  NavItem(
+      label: 'Profile',
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded),
 ];
 
 class Sidebar extends StatelessWidget {
@@ -80,8 +84,8 @@ class Sidebar extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(9),
@@ -89,7 +93,10 @@ class Sidebar extends StatelessWidget {
             child: Image.asset('assets/images/clogo.png'),
           ),
           const SizedBox(width: 10),
-          Text('CBHIMS', style: AppTextStyles.h2),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('CBHIMS', style: AppTextStyles.h3),
+          ),
         ],
       ),
     );
@@ -107,77 +114,90 @@ class Sidebar extends StatelessWidget {
         .map((w) => w[0].toUpperCase())
         .join();
 
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: AppColors.primary,
-            child: Text(
-              initials.isNotEmpty ? initials : 'U',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700),
-            ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => onSelect(5),
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(name,
-                    style: AppTextStyles.bodyMedium,
-                    overflow: TextOverflow.ellipsis),
-                Text(email,
-                    style: AppTextStyles.caption,
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-          // Logout menu
-          Builder(
-            builder: (ctx) => GestureDetector(
-              onTap: () async {
-                final shouldLogout = await showMenu<bool>(
-                  context: ctx,
-                  position: RelativeRect.fromLTRB(200, 0, 0, 0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  items: [
-                    PopupMenuItem<bool>(
-                      value: true,
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout_rounded,
-                              size: 18, color: AppColors.danger),
-                          const SizedBox(width: 8),
-                          Text('Logout',
-                              style: AppTextStyles.body
-                                  .copyWith(color: AppColors.danger)),
-                        ],
-                      ),
-                    ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  initials.isNotEmpty ? initials : 'U',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(name,
+                        style: AppTextStyles.bodyMedium,
+                        overflow: TextOverflow.ellipsis),
+                    Text(email,
+                        style: AppTextStyles.caption,
+                        overflow: TextOverflow.ellipsis),
                   ],
-                );
-                if (shouldLogout == true) {
-                  await AuthService.instance.signOut();
-                }
-              },
-              child: const Icon(Icons.more_horiz_rounded,
-                  size: 18, color: AppColors.textMuted),
-            ),
+                ),
+              ),
+              // Logout menu
+              Builder(
+                builder: (ctx) => GestureDetector(
+                  onTap: () async {
+                    final box = ctx.findRenderObject() as RenderBox;
+                    final offset = box.localToGlobal(Offset.zero);
+                    final shouldLogout = await showMenu<bool>(
+                      context: ctx,
+                      position: RelativeRect.fromLTRB(
+                        offset.dx + box.size.width + 4,
+                        offset.dy - 8,
+                        0,
+                        0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      items: [
+                        PopupMenuItem<bool>(
+                          value: true,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.logout_rounded,
+                                  size: 18, color: AppColors.danger),
+                              const SizedBox(width: 8),
+                              Text('Logout',
+                                  style: AppTextStyles.body
+                                      .copyWith(color: AppColors.danger)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                    if (shouldLogout == true) {
+                      await AuthService.instance.signOut();
+                    }
+                  },
+                  child: const Icon(Icons.more_horiz_rounded,
+                      size: 18, color: AppColors.textMuted),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

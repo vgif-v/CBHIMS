@@ -2,43 +2,54 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/section_card.dart';
+import '../dialogs/report_detail_dialog.dart';
 
-class ReportTemplate {
-  const ReportTemplate({required this.title, required this.description, required this.icon, required this.onDownload});
-
+class ReportTemplateItem {
   final String title;
   final String description;
   final String icon;
-  final Function() onDownload;
+  final ReportType type;
+
+  const ReportTemplateItem({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.type,
+  });
 }
 
-final List<ReportTemplate> reportTemplates = [
-    const ReportTemplate(title: 'Inventory Valuation Report', description: 'Current stock value by category and location.', icon: '💰', onDownload: downloadInventoryReport),
-    const ReportTemplate(title: 'Low Stock Summary', description: 'Items at or below their reorder point.', icon: '⚠️', onDownload: downloadLowStockSummary),
-    const ReportTemplate(title: 'Dead Stock Analysis', description: 'Products with no movement in 90+ days.', icon: '📉', onDownload: downloadDeadStockAnalysis),
+const List<ReportTemplateItem> reportTemplates = [
+  ReportTemplateItem(
+    title: 'Inventory Valuation Report',
+    description: 'Current stock summary by category and product status.',
+    icon: '📦',
+    type: ReportType.inventoryValuation,
+  ),
+  ReportTemplateItem(
+    title: 'Low Stock Summary',
+    description: 'Items at or below their reorder point requiring attention.',
+    icon: '⚠️',
+    type: ReportType.lowStockSummary,
+  ),
+  ReportTemplateItem(
+    title: 'Stock Movement Report',
+    description: 'Detailed log of inbound and outbound transactions.',
+    icon: '🔄',
+    type: ReportType.transactionMovement,
+  ),
 ];
-
-void downloadInventoryReport() {
-  // Implement the logic to download the inventory report
-  print('Downloading Inventory Valuation Report...');
-}
-
-void downloadLowStockSummary() {
-  // Implement the logic to download the low stock summary
-  print('Downloading Low Stock Summary...');
-}
-
-void downloadDeadStockAnalysis() {
-  // Implement the logic to download the dead stock analysis
-  print('Downloading Dead Stock Analysis...');
-}
-
-void onDownloadReport(ReportTemplate report) {
-  report.onDownload();
-}
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
+
+  void _openReport(BuildContext context, ReportTemplateItem template) {
+    ReportDetailDialog.show(
+      context,
+      reportType: template.type,
+      reportTitle: template.title,
+      reportDescription: template.description,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,12 +60,12 @@ class ReportsScreen extends StatelessWidget {
         children: [
           const ScreenHeader(
             title: 'Reports',
-            subtitle: 'Generate and export reports from your inventory data.',
+            subtitle: 'Generate, filter, and export official warehouse reports for Celis Brothers Hardware.',
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildDateRangeBar(),
+          _buildQuickExportBanner(context),
           const SizedBox(height: AppSpacing.lg),
-          Text('Report Templates', style: AppTextStyles.h3),
+          Text('Available Report Templates', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.md),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -72,9 +83,12 @@ class ReportsScreen extends StatelessWidget {
                   crossAxisCount: cols,
                   crossAxisSpacing: AppSpacing.md,
                   mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 1.75,
+                  childAspectRatio: 1.6,
                 ),
-                itemBuilder: (context, i) => _ReportCard(report: reportTemplates[i]),
+                itemBuilder: (context, i) => _ReportCard(
+                  report: reportTemplates[i],
+                  onOpen: () => _openReport(context, reportTemplates[i]),
+                ),
               );
             },
           ),
@@ -83,113 +97,39 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateRangeBar() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return constraints.maxWidth > 700 // Use the max width from constraints
-          ? SectionCard(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-          child: Row(
-            children: [
-              const Icon(Icons.date_range_rounded, size: 18, color: AppColors.textSecondary),
-              const SizedBox(width: 10),
-              Text('Date range:', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-              const SizedBox(width: 8),
-              _datePill('Jul 01, 2026'),
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
-              const SizedBox(width: 8),
-              _datePill('Jul 25, 2026'),
-              const Spacer(),
-              SecondaryButton(label: 'Export CSV', icon: Icons.table_chart_outlined, onPressed: () {}),
-              const SizedBox(width: AppSpacing.sm),
-              PrimaryButton(label: 'Export PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () {}),
-            ],
-          ),
-        )
-        :
-        SectionCard(
-          padding: const EdgeInsets.fromLTRB(12, AppSpacing.md, 16, AppSpacing.md),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.date_range_rounded, size: 18, color: AppColors.textSecondary),
-                  const SizedBox(width: 10),
-                  Text('Date range:', style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
-                  const SizedBox(width: 8),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _datePill('Jul 01, 2026'),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
-                  const SizedBox(width: 8),
-                  _datePill('Jul 25, 2026'),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SecondaryButton(label: 'Export CSV', icon: Icons.table_chart_outlined, onPressed: () {}),
-                  const SizedBox(width: AppSpacing.sm),
-                  PrimaryButton(label: 'Export PDF', icon: Icons.picture_as_pdf_outlined, onPressed: () {}),
-                ]
-              ),
-            ],
-          ),
-        );
-      }
-    );
-  }
-
-  Widget _datePill(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Text(label, style: AppTextStyles.bodyMedium),
-    );
-  }
-}
-
-class _ReportCard extends StatelessWidget {
-  final ReportTemplate report;
-  
-  const _ReportCard({required this.report});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildQuickExportBanner(BuildContext context) {
     return SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
         children: [
-          const SizedBox(height: AppSpacing.md),
-          Text(report.title, style: AppTextStyles.bodyMedium),
-          const SizedBox(height: 4),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary, size: 22),
+          ),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              report.description,
-              style: AppTextStyles.caption,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Generate Official Branded Reports', style: AppTextStyles.h3),
+                const SizedBox(height: 2),
+                Text(
+                  'All exports include the Celis Brothers Hardware header, customizable date range, PDF print output, and CSV download.',
+                  style: AppTextStyles.caption,
+                ),
+              ],
             ),
           ),
-          GestureDetector(
-            onTap: report.onDownload,
-            child: PrimaryButton(
-              label: 'Download',
-              icon: Icons.download_rounded,
-              onPressed: report.onDownload,
-            ),
+          const SizedBox(width: 16),
+          PrimaryButton(
+            label: 'View Inventory Report',
+            icon: Icons.analytics_outlined,
+            onPressed: () => _openReport(context, reportTemplates[0]),
           ),
         ],
       ),
@@ -197,4 +137,49 @@ class _ReportCard extends StatelessWidget {
   }
 }
 
+class _ReportCard extends StatelessWidget {
+  final ReportTemplateItem report;
+  final VoidCallback onOpen;
 
+  const _ReportCard({required this.report, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(report.icon, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(report.title,
+                    style: AppTextStyles.bodyMedium,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Text(
+              report.description,
+              style: AppTextStyles.caption,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'Generate & Export',
+              icon: Icons.arrow_forward_rounded,
+              onPressed: onOpen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

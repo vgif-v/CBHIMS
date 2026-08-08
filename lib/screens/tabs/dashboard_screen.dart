@@ -1,20 +1,78 @@
 import 'package:flutter/material.dart';
-import '../../models/mock_data.dart';
-import '../../models/models.dart';
+import '../../models/transaction.dart';
+import '../../services/product_service.dart';
+import '../../services/transaction_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/top_header_bar.dart';
+import '../dialogs/add_product_dialog.dart';
+import '../dialogs/add_transaction_dialog.dart';
+import '../transaction_receipt_screen.dart';
+import 'account_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final ValueChanged<int>? onNavigateToTab;
+
+  const DashboardScreen({super.key, this.onNavigateToTab});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int _totalProducts = 0;
+  int _lowStockCount = 0;
+  List<Transaction> _recentTransactions = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _loading = true);
+    try {
+      final totalFuture = ProductService.instance.getTotalCount();
+      final lowStockFuture = ProductService.instance.getLowStockCount();
+      final recentTxnsFuture = TransactionService.instance.getRecent(limit: 5);
+
+      final results = await Future.wait([
+        totalFuture,
+        lowStockFuture,
+        recentTxnsFuture,
+      ]);
+
+      if (!mounted) return;
+      setState(() {
+        _totalProducts = results[0] as int;
+        _lowStockCount = results[1] as int;
+        _recentTransactions = results[2] as List<Transaction>;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _onAddProduct() async {
+    await AddProductDialog.show(
+      context,
+      onProductAdded: _loadDashboardData,
+    );
+    _loadDashboardData();
+  }
+
+  Future<void> _onAddTransaction() async {
+    final added = await AddTransactionDialog.show(context);
+    if (added == true) {
+      _loadDashboardData();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,13 +80,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final horizontalPadding = width < 520 ? 16.0 : 32.0;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
+      padding:
+          EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const TopHeaderBar(
+          TopHeaderBar(
             title: 'Dashboard',
-            subtitle: 'Welcome back — here\'s what\'s happening in your warehouse.',
+            subtitle:
+                'Welcome back — here\'s what\'s happening in your warehouse.',
+            onAccountTap: () {
+              if (widget.onNavigateToTab != null) {
+                widget.onNavigateToTab!(5);
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const Scaffold(body: AccountScreen())),
+                );
+              }
+            },
           ),
           const SizedBox(height: AppSpacing.xl),
           _buildStatGrid(context),
@@ -45,21 +114,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cards = [
-          const StatCard(
+          StatCard(
             label: 'Total Products',
-            value: '12,450',
+            value: _loading ? '...' : '$_totalProducts',
             icon: Icons.inventory_2_rounded,
             iconColor: AppColors.primary,
             iconBg: AppColors.primarySoft,
           ),
-          const StatCard(
+          StatCard(
             label: 'Low Stock Alert',
-            value: '14',
+            value: _loading ? '...' : '$_lowStockCount',
             icon: Icons.warning_rounded,
             iconColor: AppColors.warning,
             iconBg: AppColors.warningSoft,
-            badgeText: 'Needs review',
-            badgeTone: BadgeTone.warning,
+            badgeText: _lowStockCount > 0 ? 'Needs review' : 'Optimal',
+            badgeTone:
+                _lowStockCount > 0 ? BadgeTone.warning : BadgeTone.success,
           ),
         ];
 
@@ -69,7 +139,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               for (int i = 0; i < cards.length; i++) ...[
                 cards[i],
-                if (i != cards.length - 1) const SizedBox(height: AppSpacing.md),
+                if (i != cards.length - 1)
+                  const SizedBox(height: AppSpacing.md),
               ],
             ],
           );
@@ -80,7 +151,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return Wrap(
             spacing: AppSpacing.md,
             runSpacing: AppSpacing.md,
-            children: cards.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
+            children:
+                cards.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
           );
         }
 
@@ -99,26 +171,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildMiddleSection(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool wide = constraints.maxWidth > 900;
-        //final chart = _buildStockMovementChart();
         final actions = _buildQuickActions();
-
-        if (!wide) {
-          return Column(
-            children: [const SizedBox(height: AppSpacing.xs), actions],
-          );
-        }
-
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              //Expanded(flex: 2, child: chart),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(flex: 1, child: actions),
-            ],
-          ),
-        );
+        return actions;
       },
     );
   }
@@ -132,25 +186,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 4),
           Text('Common tasks, one tap away.', style: AppTextStyles.caption),
           const SizedBox(height: AppSpacing.lg),
-          const _QuickActionButton(
+          _QuickActionButton(
             icon: Icons.add_circle_rounded,
-            label: 'Add Stock',
+            label: 'Add Product',
             iconColor: AppColors.primary,
             iconBg: AppColors.primarySoft,
+            onTap: _onAddProduct,
           ),
           const SizedBox(height: AppSpacing.sm),
-          const _QuickActionButton(
+          _QuickActionButton(
             icon: Icons.sync_alt_rounded,
-            label: 'Stock Transfer',
+            label: 'Add Transaction (Inbound/Outbound)',
             iconColor: AppColors.success,
             iconBg: AppColors.successSoft,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const _QuickActionButton(
-            icon: Icons.assignment_outlined,
-            label: 'Export Audit',
-            iconColor: AppColors.warning,
-            iconBg: AppColors.warningSoft,
+            onTap: _onAddTransaction,
           ),
         ],
       ),
@@ -159,42 +208,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentTransactions(BuildContext context) {
     return SectionCard(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(builder: (context, constraints) {
-            final compact = constraints.maxWidth < 420;
-            return compact
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Recent Transactions', style: AppTextStyles.h3),
-                      const SizedBox(height: AppSpacing.sm),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                          child: Text('View all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Recent Transactions', style: AppTextStyles.h3),
+              TextButton(
+                onPressed: _loadDashboardData,
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                child: Text('Refresh',
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.primary)),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _loading
+              ? const SizedBox(
+                  height: 140,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _recentTransactions.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No recent transactions recorded yet.',
+                          style: AppTextStyles.body
+                              .copyWith(color: AppColors.textSecondary),
                         ),
                       ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Recent Transactions', style: AppTextStyles.h3),
-                      TextButton(
-                        onPressed: () {},
-                        style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                        child: Text('View all', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary)),
-                      ),
-                    ],
-                  );
-          }),
-          const SizedBox(height: AppSpacing.sm),
-          const _TransactionsTable(transactions: MockData.transactions),
+                    )
+                  : _TransactionsTable(transactions: _recentTransactions),
         ],
       ),
     );
@@ -206,8 +255,15 @@ class _QuickActionButton extends StatefulWidget {
   final String label;
   final Color iconColor;
   final Color iconBg;
+  final VoidCallback onTap;
 
-  const _QuickActionButton({required this.icon, required this.label, required this.iconColor, required this.iconBg});
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.iconBg,
+    required this.onTap,
+  });
 
   @override
   State<_QuickActionButton> createState() => _QuickActionButtonState();
@@ -223,7 +279,7 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
       onExit: (_) => setState(() => _hovering = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {},
+        onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           padding: const EdgeInsets.all(14),
@@ -237,12 +293,16 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
               Container(
                 width: 32,
                 height: 32,
-                decoration: BoxDecoration(color: widget.iconBg, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                    color: widget.iconBg,
+                    borderRadius: BorderRadius.circular(8)),
                 child: Icon(widget.icon, size: 17, color: widget.iconColor),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(widget.label, style: AppTextStyles.bodyMedium)),
-              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMuted),
+              Expanded(
+                  child: Text(widget.label, style: AppTextStyles.bodyMedium)),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 18, color: AppColors.textMuted),
             ],
           ),
         ),
@@ -259,11 +319,10 @@ class _TransactionsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: LayoutBuilder(builder: (context, constraints) {
-        final minW = constraints.maxWidth < 700 ? constraints.maxWidth : 700.0;
-        return ConstrainedBox(
-          constraints: BoxConstraints(minWidth: minW),
-          child: DataTable(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 600),
+        child: DataTable(
+          showCheckboxColumn: false,
           dataRowMaxHeight: double.infinity,
           headingRowColor: WidgetStateProperty.all(Colors.transparent),
           dividerThickness: 1,
@@ -272,34 +331,60 @@ class _TransactionsTable extends StatelessWidget {
           headingTextStyle: AppTextStyles.label,
           dataTextStyle: AppTextStyles.body,
           columns: const [
-            DataColumn(label: Text('ITEM NAME')),
+            DataColumn(label: Text('BILL NO.')),
             DataColumn(label: Text('TYPE')),
+            DataColumn(label: Text('TOTAL ITEMS'), numeric: true),
             DataColumn(label: Text('DATE')),
           ],
           rows: transactions.map((t) {
-            final inbound = t.type == TxnType.inbound;
-            return DataRow(cells: [
-              DataCell(Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 4),
-                    child: SizedBox(width:200,
-                      child: Text(t.itemName, style: AppTextStyles.bodyMedium),
-                    ),
-                  ),
-                ],
+            final inbound = t.type == 'inbound';
+            final dateStr = t.createdAt != null
+                ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+                : 'N/A';
+
+            void openDetails() async {
+              try {
+                final detailedTxn = t.id != null
+                    ? await TransactionService.instance.getById(t.id!)
+                    : t;
+                if (!context.mounted) return;
+                TransactionReceiptScreen.navigateTo(context, detailedTxn);
+              } catch (e) {
+                if (!context.mounted) return;
+                TransactionReceiptScreen.navigateTo(context, t);
+              }
+            }
+
+            return DataRow(
+              cells: [
+                DataCell(
+                  Text(t.billNo,
+                      style: AppTextStyles.mono
+                          .copyWith(fontWeight: FontWeight.w600)),
+                  onTap: openDetails,
                 ),
-              ),
-              DataCell(StatusBadge(
-                label: inbound ? '+ Inbound' : '- Outbound',
-                tone: inbound ? BadgeTone.success : BadgeTone.info,
-              )),
-              DataCell(Text(t.date, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary))),
-            ]);
+                DataCell(
+                  StatusBadge(
+                    label: inbound ? '+ Inbound' : '- Outbound',
+                    tone: inbound ? BadgeTone.success : BadgeTone.danger,
+                  ),
+                  onTap: openDetails,
+                ),
+                DataCell(
+                  Text('${t.totalItems}', style: AppTextStyles.bodyMedium),
+                  onTap: openDetails,
+                ),
+                DataCell(
+                  Text(dateStr,
+                      style: AppTextStyles.body
+                          .copyWith(color: AppColors.textSecondary)),
+                  onTap: openDetails,
+                ),
+              ],
+            );
           }).toList(),
-          ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }

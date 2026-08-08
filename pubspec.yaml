@@ -14,13 +14,29 @@ dependencies:
   cupertino_icons: ^1.0.6
   flutter_dotenv: ^6.0.1
   supabase_flutter: ^2.17.1
+  pdf: ^3.13.0
+  printing: ^5.15.0
+  intl: ^0.20.3
+  shared_preferences: ^2.3.4
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  connectivity_plus: ^6.0.5
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   assets:
     - .env
     - assets/images/
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21

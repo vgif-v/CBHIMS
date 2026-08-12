@@ -1,0 +1,649 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../models/product.dart';
+import '../../models/transaction.dart';
+import '../../models/transaction_item.dart';
+import '../../services/auth_service.dart';
+import '../../services/product_service.dart';
+import '../../services/transaction_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/notification_banner.dart';
+import '../transaction_receipt_screen.dart';
+
+class _TxnItemRow {
+  final Key key = UniqueKey();
+  Product? selectedProduct;
+  final TextEditingController quantityController;
+
+  _TxnItemRow({int initialQty = 1})
+      : quantityController = TextEditingController(text: '$initialQty');
+
+  void dispose() {
+    quantityController.dispose();
+  }
+}
+
+/// A full screen to record or edit an Inbound/Outbound Stock Transaction.
+///
+/// Pass [existingTransaction] to open in edit mode: fields are pre-filled
+/// and submitting calls [TransactionService.update] instead of
+/// [TransactionService.create]. Editing does not change product stock —
+/// use the separate cancel flow to reverse stock.
+class AddTransactionScreen extends StatefulWidget {
+  final Transaction? existingTransaction;
+
+  const AddTransactionScreen({super.key, this.existingTransaction});
+
+  /// Pushes the screen in create mode. Returns `true` if a transaction was created.
+  static Future<bool?> show(BuildContext context) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
+    );
+  }
+
+  /// Pushes the screen in edit mode for an existing transaction.
+  /// Returns `true` if the transaction was updated.
+  static Future<bool?> showEdit(BuildContext context, Transaction transaction) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(existingTransaction: transaction),
+      ),
+    );
+  }
+
+  @override
+  State<AddTransactionScreen> createState() => _AddTransactionScreenState();
+}
+
+class _AddTransactionScreenState extends State<AddTransactionScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _billNoController = TextEditingController();
+  final _remarksController = TextEditingController();
+  final _issuedToController = TextEditingController();
+
+  String _type = 'inbound'; // 'inbound' or 'outbound'
+  String _status = 'Completed'; // 'Completed' or 'Pending'
+  List<Product> _allProducts = [];
+  bool _loadingProducts = true;
+  bool _submitting = false;
+
+  final List<_TxnItemRow> _itemRows = [];
+
+  bool get _isEditMode => widget.existingTransaction != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _billNoController.dispose();
+    _remarksController.dispose();
+    _issuedToController.dispose();
+    for (var item in _itemRows) {
+      item.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await ProductService.instance.getAll();
+      if (!mounted) return;
+      setState(() {
+        _allProducts = products;
+        _loadingProducts = false;
+
+        if (_itemRows.isEmpty) {
+          final existing = widget.existingTransaction;
+          if (existing != null && existing.items.isNotEmpty) {
+            for (final item in existing.items) {
+              final row = _TxnItemRow(initialQty: item.quantity);
+              if (item.productId != null) {
+                for (final p in products) {
+                  if (p.id == item.productId) {
+                    row.selectedProduct = p;
+                    break;
+                  }
+                }
+              }
+              _itemRows.add(row);
+            }
+          } else {
+            _addItemRow();
+          }
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingProducts = false);
+    }
+  }
+
+  void _addItemRow() {
+    setState(() {
+      _itemRows.insert(0, _TxnItemRow());
+    });
+  }
+
+  void _removeItemRow(int index) {
+    if (_itemRows.length <= 1) return;
+    setState(() {
+      final removed = _itemRows.removeAt(index);
+      removed.dispose();
+    });
+  }
+
+  Future<void> _handleSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final validItems = <TransactionItem>[];
+    for (int i = 0; i < _itemRows.length; i++) {
+      final row = _itemRows[i];
+      if (row.selectedProduct == null) {
+        NotificationBanner.show(
+          context,
+          'Please select a product for item #${i + 1}.',
+          tone: NotificationTone.warning,
+        );
+        return;
+      }
+
+      final qty = int.tryParse(row.quantityController.text.trim()) ?? 0;
+      if (qty <= 0) {
+        NotificationBanner.show(
+          context,
+          'Quantity for ${row.selectedProduct!.productName} must be greater than 0.',
+          tone: NotificationTone.warning,
+        );
+        return;
+      }
+
+      if (!_isEditMode &&
+          _type == 'outbound' &&
+          qty > row.selectedProduct!.quantity) {
+        NotificationBanner.show(
+          context,
+          'Warning: ${row.selectedProduct!.productName} only has ${row.selectedProduct!.quantity} in stock.',
+          tone: NotificationTone.warning,
+        );
+      }
+
+      validItems.add(TransactionItem(
+        productId: row.selectedProduct!.id,
+        productName: row.selectedProduct!.productName,
+        quantity: qty,
+      ));
+    }
+
+    setState(() => _submitting = true);
+    try {
+      if (_isEditMode) {
+        final updatedTxn = await TransactionService.instance.update(
+          transactionId: widget.existingTransaction!.id!,
+          billNo: _billNoController.text.trim(),
+          type: _type,
+          status: _status,
+          items: validItems,
+          remarks: _remarksController.text.trim(),
+          issuedTo: _issuedToController.text.trim(),
+        );
+
+        if (!mounted) return;
+        NotificationBanner.show(
+          context,
+          'Transaction updated successfully!',
+          tone: NotificationTone.success,
+        );
+        Navigator.of(context).pop(true);
+        TransactionReceiptScreen.navigateTo(context, updatedTxn);
+      } else {
+        final currentUserId = AuthService.instance.userId;
+
+        final createdTxn = await TransactionService.instance.create(
+          billNo: _billNoController.text.trim(),
+          type: _type,
+          status: _status,
+          items: validItems,
+          remarks: _remarksController.text.trim(),
+          issuedTo: _issuedToController.text.trim(),
+          userId: currentUserId,
+        );
+
+        if (!mounted) return;
+        NotificationBanner.show(
+          context,
+          'Transaction created successfully!',
+          tone: NotificationTone.success,
+        );
+        Navigator.of(context).pop(true);
+        TransactionReceiptScreen.navigateTo(context, createdTxn);
+      }
+    } catch (e, st) {
+      debugPrint('[AddTransactionScreen] Error saving transaction: $e\n$st');
+      if (!mounted) return;
+      NotificationBanner.show(
+        context,
+        'Failed to save transaction: $e',
+        tone: NotificationTone.error,
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                    _isEditMode ? Icons.edit_rounded : Icons.swap_horiz_rounded,
+                    color: AppColors.primary,
+                    size: 22),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_isEditMode ? 'Edit Transaction' : 'Add New Transaction',
+                        style: AppTextStyles.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                        _isEditMode
+                            ? 'Update this transaction\'s details.'
+                            : 'Record stock movement (Inbound or Outbound).',
+                        style: AppTextStyles.caption),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Bill No & Type Row
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _buildField(
+                      label: 'Bill No. / Reference',
+                      child: TextFormField(
+                        controller: _billNoController,
+                        style: AppTextStyles.body
+                            .copyWith(color: AppColors.textPrimary),
+                        decoration: _inputDecoration('e.g. BILL-1001'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Required'
+                            : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Status & Remarks Row
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildField(
+                      label: 'Remarks (Optional)',
+                      child: TextFormField(
+                        controller: _remarksController,
+                        style: AppTextStyles.body
+                            .copyWith(color: AppColors.textPrimary),
+                        decoration: _inputDecoration('Notes / Purpose'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_isEditMode &&
+                  widget.existingTransaction!.status.toLowerCase() !=
+                      'cancelled') ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.warningSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          size: 16, color: AppColors.warning),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Setting status to Cancelled will reverse this '
+                          'transaction\'s stock impact when you save.',
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+
+              // Item List Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Items in Transaction', style: AppTextStyles.h3),
+                  TextButton.icon(
+                    onPressed: _addItemRow,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: Text('Add Another Item',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: AppColors.primary)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              if (_loadingProducts)
+                const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_allProducts.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.warningSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppColors.warning),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No products found in inventory. Please add products first before creating a transaction.',
+                          style: AppTextStyles.body,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._itemRows.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final row = entry.value;
+
+                  final selectedProduct = row.selectedProduct != null
+                      ? _allProducts.firstWhere(
+                          (p) => p.id == row.selectedProduct!.id,
+                          orElse: () => row.selectedProduct!,
+                        )
+                      : null;
+
+                  return Container(
+                    key: row.key,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Autocomplete<Product>(
+                            displayStringForOption: (p) => p.productName,
+                            initialValue: TextEditingValue(
+                              text: selectedProduct?.productName ?? '',
+                            ),
+                            optionsBuilder: (TextEditingValue textValue) {
+                              if (textValue.text.isEmpty) {
+                                return _allProducts;
+                              }
+                              return _allProducts.where((p) => p.productName
+                                  .toLowerCase()
+                                  .contains(textValue.text.toLowerCase()));
+                            },
+                            onSelected: (Product p) {
+                              setState(() {
+                                final existingRow = _itemRows.firstWhere(
+                                  (r) => r != row && r.selectedProduct?.id == p.id,
+                                  orElse: () => _TxnItemRow(),
+                                );
+
+                                final foundDuplicate =
+                                    _itemRows.contains(existingRow) &&
+                                        existingRow != row;
+
+                                if (foundDuplicate) {
+                                  final thisQty = int.tryParse(
+                                          row.quantityController.text) ??
+                                      0;
+                                  final existingQty = int.tryParse(
+                                          existingRow.quantityController.text) ??
+                                      0;
+                                  existingRow.quantityController.text =
+                                      (existingQty + thisQty).toString();
+
+                                  _itemRows.remove(row);
+                                } else {
+                                  row.selectedProduct = p;
+                                }
+                              });
+                            },
+                            fieldViewBuilder:
+                                (context, controller, focusNode, onFieldSubmitted) {
+                              return TextFormField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                style: AppTextStyles.body
+                                    .copyWith(color: AppColors.textPrimary),
+                                decoration: _inputDecoration('Search product'),
+                              );
+                            },
+                            optionsViewBuilder: (context, onSelected, options) {
+                              return Align(
+                                alignment: Alignment.topLeft,
+                                child: Material(
+                                  elevation: 4,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxHeight: 250),
+                                    child: ListView.builder(
+                                      padding: EdgeInsets.zero,
+                                      shrinkWrap: true,
+                                      itemCount: options.length,
+                                      itemBuilder: (context, index) {
+                                        final p = options.elementAt(index);
+                                        return ListTile(
+                                          title: Text(
+                                            '${p.productName} (${p.quantity} ${p.unit} in stock)',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          onTap: () => onSelected(p),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 90,
+                          child: TextFormField(
+                            controller: row.quantityController,
+                            style: AppTextStyles.body
+                                .copyWith(color: AppColors.textPrimary),
+                            decoration: _inputDecoration('Qty'),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                          ),
+                        ),
+                        if (_itemRows.length > 1) ...[
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: () => _removeItemRow(i),
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: AppColors.danger, size: 20),
+                            splashRadius: 18,
+                            tooltip: 'Remove row',
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: OutlinedButton(
+                    onPressed: _submitting
+                        ? null
+                        : () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('Cancel', style: AppTextStyles.bodyMedium),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: ElevatedButton(
+                    onPressed: _submitting ? null : _handleSubmit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.6),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            _isEditMode ? 'Save Changes' : 'Save Transaction',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: Colors.white)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.label),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+      filled: true,
+      fillColor: AppColors.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.danger),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+      ),
+    );
+  }
+}

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../services/product_service.dart';
-import '../../services/category_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/notification_banner.dart';
 
@@ -32,11 +31,9 @@ class _EditProductDialogState extends State<EditProductDialog> {
   late final TextEditingController _quantityController;
   late final TextEditingController _remarksController;
 
-  List<Category> _categories = [];
   int? _selectedCategoryId;
   late String _selectedUnit;
   bool _loading = false;
-  bool _loadingCategories = true;
 
   static const _units = [
     'pcs',
@@ -61,7 +58,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
         TextEditingController(text: widget.product.remarks ?? '');
     _selectedCategoryId = widget.product.categoryId;
     _selectedUnit = widget.product.unit;
-    _loadCategories();
   }
 
   @override
@@ -70,20 +66,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
     _quantityController.dispose();
     _remarksController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadCategories() async {
-    try {
-      final cats = await CategoryService.instance.getAll();
-      if (!mounted) return;
-      setState(() {
-        _categories = cats;
-        _loadingCategories = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loadingCategories = false);
-    }
   }
 
   Future<void> _handleSubmit() async {
@@ -163,35 +145,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
                           validator: (v) =>
                               v == null || v.trim().isEmpty ? 'Required' : null,
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      _buildField(
-                        label: 'Category',
-                        child: _loadingCategories
-                            ? const SizedBox(
-                                height: 48,
-                                child: Center(
-                                    child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2))))
-                            : DropdownButtonFormField<int>(
-                                initialValue: _selectedCategoryId,
-                                decoration: _inputDecoration('Select category'),
-                                style: AppTextStyles.body
-                                    .copyWith(color: AppColors.textPrimary),
-                                borderRadius: BorderRadius.circular(12),
-                                items: _categories
-                                    .map((c) => DropdownMenuItem(
-                                        value: c.id, child: Text(c.name)))
-                                    .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _selectedCategoryId = v),
-                                validator: (v) => v == null
-                                    ? 'Please select a category'
-                                    : null,
-                              ),
                       ),
                       const SizedBox(height: 18),
                       Row(

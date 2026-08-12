@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
-import '../../models/category.dart';
 import '../../services/product_service.dart';
-import '../../services/category_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/notification_banner.dart';
 import '../../widgets/section_card.dart';
-import '../../widgets/status_badge.dart';
-import '../dialogs/add_product_dialog.dart';
-import '../dialogs/edit_product_dialog.dart';
+import '../dialogs_screen/add_product_dialog.dart';
+import '../dialogs_screen/edit_product_dialog.dart';
+
+enum ProductSort { recentlyAdded, nameAsc, nameDesc }
+
+extension _ProductSortLabel on ProductSort {
+  String get label {
+    switch (this) {
+      case ProductSort.recentlyAdded:
+        return 'Recently Added';
+      case ProductSort.nameAsc:
+        return 'Name (A-Z)';
+      case ProductSort.nameDesc:
+        return 'Name (Z-A)';
+    }
+  }
+}
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -21,10 +33,9 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Product> _products = [];
-  List<Category> _categories = [];
-  String _selectedCategory = 'All Categories';
   bool _loading = true;
   String? _error;
+  ProductSort _sortOption = ProductSort.recentlyAdded;
 
   @override
   void initState() {
@@ -46,14 +57,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     try {
       final productsFuture = ProductService.instance.getAll();
-      final categoriesFuture = CategoryService.instance.getAll();
 
-      final results = await Future.wait([productsFuture, categoriesFuture]);
+      final results = await Future.wait([productsFuture]);
 
       if (!mounted) return;
       setState(() {
         _products = results[0] as List<Product>;
-        _categories = results[1] as List<Category>;
         _loading = false;
       });
     } catch (e) {
@@ -132,13 +141,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   List<Product> get _filteredProducts {
     final query = _searchController.text.trim().toLowerCase();
-    return _products.where((p) {
-      final matchesCategory = _selectedCategory == 'All Categories' ||
-          p.categoryName == _selectedCategory;
-      final matchesQuery = query.isEmpty ||
-          p.productName.toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
+    final filtered = _products.where((p) {
+      final matchesQuery =
+          query.isEmpty || p.productName.toLowerCase().contains(query);
+      return matchesQuery;
     }).toList();
+
+    switch (_sortOption) {
+      case ProductSort.nameAsc:
+        filtered.sort((a, b) =>
+            a.productName.toLowerCase().compareTo(b.productName.toLowerCase()));
+        break;
+      case ProductSort.nameDesc:
+        filtered.sort((a, b) =>
+            b.productName.toLowerCase().compareTo(a.productName.toLowerCase()));
+        break;
+      case ProductSort.recentlyAdded:
+        // Assumes higher id == more recently added (auto-incrementing id).
+        // Swap this out for a createdAt comparison if the Product model
+        // exposes a timestamp field.
+        filtered.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+        break;
+    }
+
+    return filtered;
   }
 
   @override
@@ -148,7 +174,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ScreenHeader(
             title: 'Inventory',
@@ -221,11 +247,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilterBar() {
-    final categoryOptions = [
-      'All Categories',
-      ..._categories.map((c) => c.name),
-    ];
-
     return Row(
       children: [
         Expanded(
@@ -277,19 +298,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
             border: Border.all(color: AppColors.border),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: categoryOptions.contains(_selectedCategory)
-                  ? _selectedCategory
-                  : 'All Categories',
+            child: DropdownButton<ProductSort>(
+              value: _sortOption,
               icon: const Icon(Icons.expand_more_rounded,
                   size: 18, color: AppColors.textSecondary),
               style: AppTextStyles.body,
               borderRadius: BorderRadius.circular(AppRadius.sm),
-              items: categoryOptions
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+              items: ProductSort.values
+                  .map((s) => DropdownMenuItem(
+                        value: s,
+                        child: Text(s.label),
+                      ))
                   .toList(),
               onChanged: (v) =>
-                  setState(() => _selectedCategory = v ?? 'All Categories'),
+                  setState(() => _sortOption = v ?? ProductSort.recentlyAdded),
             ),
           ),
         ),
@@ -309,78 +331,94 @@ class _ProductTable extends StatelessWidget {
     required this.onDelete,
   });
 
-  StatusBadge _statusBadge(Product p) {
-    if (p.quantity <= 0) {
-      return const StatusBadge(label: 'Out of stock', tone: BadgeTone.danger);
-    } else if (p.quantity <= 10) {
-      return const StatusBadge(label: 'Low stock', tone: BadgeTone.warning);
-    } else {
-      return const StatusBadge(label: 'Healthy', tone: BadgeTone.success);
-    }
-  }
+  static const double _stockColumnWidth = 120;
+  static const double _actionsColumnWidth = 96;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 680),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.transparent),
-          dividerThickness: 1,
-          dataRowMaxHeight: double.infinity,
-          columnSpacing: 28,
-          horizontalMargin: 4,
-          headingTextStyle: AppTextStyles.label,
-          dataTextStyle: AppTextStyles.body,
-          columns: const [
-            DataColumn(label: Text('PRODUCT NAME')),
-            DataColumn(label: Text('CATEGORY')),
-            DataColumn(label: Text('IN STOCK'), numeric: true),
-            DataColumn(label: Text('STATUS')),
-            DataColumn(label: Text('ACTIONS')),
-          ],
-          rows: products.map((p) {
-            return DataRow(cells: [
-              DataCell(
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header row
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('PRODUCT NAME', style: AppTextStyles.label),
+                ),
+                SizedBox(
+                  width: _stockColumnWidth,
+                  child: Text('IN STOCK',
+                      textAlign: TextAlign.right, style: AppTextStyles.label),
+                ),
+                const SizedBox(width: 28),
+                SizedBox(
+                  width: _actionsColumnWidth,
+                  child: Text('ACTIONS',
+                      textAlign: TextAlign.right, style: AppTextStyles.label),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.border),
+          // Data rows
+          ...products.map((p) {
+            return Column(
+              children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: SizedBox(
-                    width: 240,
-                    child: Text(p.productName, style: AppTextStyles.bodyMedium),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          p.productName,
+                          style: AppTextStyles.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(
+                        width: _stockColumnWidth,
+                        child: Text(
+                          '${p.quantity} ${p.unit}',
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.bodyMedium,
+                        ),
+                      ),
+                      const SizedBox(width: 28),
+                      SizedBox(
+                        width: _actionsColumnWidth,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              onPressed: () => onEdit(p),
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: AppColors.primary),
+                              splashRadius: 18,
+                              tooltip: 'Edit',
+                            ),
+                            IconButton(
+                              onPressed: () => onDelete(p),
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: AppColors.danger),
+                              splashRadius: 18,
+                              tooltip: 'Delete',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              DataCell(Text(p.categoryName ?? 'Uncategorized',
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary))),
-              DataCell(
-                  Text('${p.quantity} ${p.unit}', style: AppTextStyles.bodyMedium)),
-              DataCell(_statusBadge(p)),
-              DataCell(
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => onEdit(p),
-                      icon: const Icon(Icons.edit_outlined,
-                          size: 18, color: AppColors.primary),
-                      splashRadius: 18,
-                      tooltip: 'Edit',
-                    ),
-                    IconButton(
-                      onPressed: () => onDelete(p),
-                      icon: const Icon(Icons.delete_outline_rounded,
-                          size: 18, color: AppColors.danger),
-                      splashRadius: 18,
-                      tooltip: 'Delete',
-                    ),
-                  ],
-                ),
-              ),
-            ]);
-          }).toList(),
-        ),
+                const Divider(height: 1, color: AppColors.border),
+              ],
+            );
+          }),
+        ],
       ),
     );
   }

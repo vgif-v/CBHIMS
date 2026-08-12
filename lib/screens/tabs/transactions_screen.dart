@@ -11,7 +11,7 @@ import '../../widgets/buttons.dart';
 import '../../widgets/notification_banner.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_badge.dart';
-import '../dialogs/add_transaction_dialog.dart';
+import '../dialogs_screen/add_transaction_screen.dart';
 import '../transaction_receipt_screen.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -105,7 +105,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _onAddTransaction() async {
-    final added = await AddTransactionDialog.show(context);
+    final added = await AddTransactionScreen.show(context);
     if (added == true) {
       _loadTransactions();
     }
@@ -125,7 +125,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       final full =
           txn.id != null ? await TransactionService.instance.getById(txn.id!) : txn;
       if (!mounted) return;
-      final updated = await AddTransactionDialog.showEdit(context, full);
+      final updated = await AddTransactionScreen.showEdit(context, full);
       if (updated == true) {
         _loadTransactions();
       }

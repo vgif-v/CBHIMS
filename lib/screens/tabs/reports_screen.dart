@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/section_card.dart';
-import '../dialogs/report_detail_dialog.dart';
+import '../dialogs_screen/report_detail_dialog.dart';
 
 class ReportTemplateItem {
   final String title;

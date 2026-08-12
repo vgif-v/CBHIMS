@@ -13,9 +13,19 @@ import 'services/sync_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  String loadedUrl = '(not loaded yet)';
+  String loadedKeyPreview = '(not loaded yet)';
+
   try {
     await dotenv.load(fileName: ".env");
-    debugPrint('LOADED URL: [${dotenv.env['SUPABASE_URL']}]');
+
+    loadedUrl = dotenv.env['SUPABASE_URL'] ?? '(NULL - key not found)';
+    final key = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    loadedKeyPreview = key.isEmpty
+        ? '(NULL - key not found)'
+        : '${key.substring(0, key.length > 12 ? 12 : key.length)}...';
+
+    debugPrint('LOADED URL: [$loadedUrl]');
 
     await Supabase.initialize(
       url: (dotenv.env['SUPABASE_URL'] ?? '').trim(),
@@ -28,15 +38,10 @@ void main() async {
     await OfflineQueueService.instance.init();
     await ConnectivityService.instance.init();
 
-    // If the app launches already online and there's a backlog from a
-    // previous offline session, sync it now rather than waiting for a
-    // connectivity CHANGE event (which won't fire if we're already online).
     if (ConnectivityService.instance.lastKnownOnline) {
-      // Don't await this — let the UI render immediately, sync in background.
       SyncService.instance.syncPendingTransactions();
     }
 
-    // Sync whenever we transition from offline -> online.
     ConnectivityService.instance.onOnlineStatusChanged.listen((isOnline) {
       if (isOnline) {
         SyncService.instance.syncPendingTransactions();
@@ -45,17 +50,27 @@ void main() async {
 
     runApp(const InventoryApp());
   } catch (e) {
-    // If init fails, show an error screen instead of a blank white page.
     runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Text(
-              'Failed to initialize:\n$e',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Failed to initialize:\n$e',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'DEBUG INFO\nURL: $loadedUrl\nKey starts with: $loadedKeyPreview',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.black87, fontSize: 13),
+                ),
+              ],
             ),
           ),
         ),

@@ -7,8 +7,8 @@ import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/top_header_bar.dart';
-import '../dialogs/add_product_dialog.dart';
-import '../dialogs/add_transaction_dialog.dart';
+import '../dialogs_screen/add_product_dialog.dart';
+import '../dialogs_screen/add_transaction_screen.dart';
 import '../transaction_receipt_screen.dart';
 import 'account_screen.dart';
 
@@ -68,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _onAddTransaction() async {
-    final added = await AddTransactionDialog.show(context);
+    final added = await AddTransactionScreen.show(context);
     if (added == true) {
       _loadDashboardData();
     }

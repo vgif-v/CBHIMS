@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../../models/product.dart';
 import '../../models/category.dart';
 import '../../services/product_service.dart';
-import '../../services/category_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/notification_banner.dart';
 
@@ -55,13 +54,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     'liter',
     'bag'
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCategories();
-  }
-
+  
   @override
   void dispose() {
     _nameController.dispose();
@@ -69,43 +62,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _newCategoryController.dispose();
     _remarksController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadCategories() async {
-    try {
-      final cats = await CategoryService.instance.getAll();
-      if (!mounted) return;
-      setState(() {
-        _categories = cats;
-        _loadingCategories = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _loadingCategories = false);
-    }
-  }
-
-  Future<void> _addCategory() async {
-    final name = _newCategoryController.text.trim();
-    if (name.isEmpty) return;
-
-    try {
-      final newCat = await CategoryService.instance.add(name: name);
-      if (!mounted) return;
-      setState(() {
-        _categories.add(newCat);
-        _selectedCategoryId = newCat.id;
-        _showNewCategoryField = false;
-        _newCategoryController.clear();
-      });
-    } catch (e) {
-      if (!mounted) return;
-      NotificationBanner.show(
-        context,
-        'Failed to add category: $e',
-        tone: NotificationTone.error,
-      );
-    }
   }
 
   void _resetForm() {

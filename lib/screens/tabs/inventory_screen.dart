@@ -62,7 +62,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
       if (!mounted) return;
       setState(() {
-        _products = results[0] as List<Product>;
+        _products = results[0];
         _loading = false;
       });
     } catch (e) {

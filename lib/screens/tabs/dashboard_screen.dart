@@ -317,74 +317,99 @@ class _TransactionsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 600),
-        child: DataTable(
-          showCheckboxColumn: false,
-          dataRowMaxHeight: double.infinity,
-          headingRowColor: WidgetStateProperty.all(Colors.transparent),
-          dividerThickness: 1,
-          columnSpacing: 32,
-          horizontalMargin: 4,
-          headingTextStyle: AppTextStyles.label,
-          dataTextStyle: AppTextStyles.body,
-          columns: const [
-            DataColumn(label: Text('BILL NO.')),
-            DataColumn(label: Text('TYPE')),
-            DataColumn(label: Text('TOTAL ITEMS'), numeric: true),
-            DataColumn(label: Text('DATE')),
-          ],
-          rows: transactions.map((t) {
-            final inbound = t.type == 'inbound';
-            final dateStr = t.createdAt != null
-                ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
-                : 'N/A';
-
-            void openDetails() async {
-              try {
-                final detailedTxn = t.id != null
-                    ? await TransactionService.instance.getById(t.id!)
-                    : t;
-                if (!context.mounted) return;
-                TransactionReceiptScreen.navigateTo(context, detailedTxn);
-              } catch (e) {
-                if (!context.mounted) return;
-                TransactionReceiptScreen.navigateTo(context, t);
-              }
-            }
-
-            return DataRow(
-              cells: [
-                DataCell(
-                  Text(t.billNo,
-                      style: AppTextStyles.mono
-                          .copyWith(fontWeight: FontWeight.w600)),
-                  onTap: openDetails,
-                ),
-                DataCell(
-                  StatusBadge(
-                    label: inbound ? '+ Inbound' : '- Outbound',
-                    tone: inbound ? BadgeTone.success : BadgeTone.danger,
-                  ),
-                  onTap: openDetails,
-                ),
-                DataCell(
-                  Text('${t.totalItems}', style: AppTextStyles.bodyMedium),
-                  onTap: openDetails,
-                ),
-                DataCell(
-                  Text(dateStr,
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.textSecondary)),
-                  onTap: openDetails,
-                ),
-              ],
-            );
-          }).toList(),
+    return Column(
+      children: [
+        // Header row.
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Row(
+            children: [
+              Expanded(flex: 3, child: Text('BILL NO.', style: AppTextStyles.label)),
+              Expanded(flex: 2, child: Text('TYPE', style: AppTextStyles.label)),
+              Expanded(
+                flex: 2,
+                child: Text('TOTAL ITEMS',
+                    textAlign: TextAlign.right, style: AppTextStyles.label),
+              ),
+            ],
+          ),
         ),
-      ),
+        const Divider(height: 0.6, thickness: 0.6),
+        // Data rows.
+        ...transactions.expand((t) {
+          final inbound = t.type == 'inbound';
+          final dateStr = t.createdAt != null
+              ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+              : 'N/A';
+
+          Future<void> openDetails() async {
+            try {
+              final detailedTxn = t.id != null
+                  ? await TransactionService.instance.getById(t.id!)
+                  : t;
+              if (!context.mounted) return;
+              TransactionReceiptScreen.navigateTo(context, detailedTxn);
+            } catch (e) {
+              if (!context.mounted) return;
+              TransactionReceiptScreen.navigateTo(context, t);
+            }
+          }
+
+          return [
+            InkWell(
+              onTap: openDetails,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            t.billNo,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.mono
+                                .copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dateStr,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: StatusBadge(
+                        label: inbound ? 'Receive' : 'Release',
+                        tone: inbound ? BadgeTone.success : BadgeTone.danger,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${t.totalItems}',
+                        textAlign: TextAlign.right,
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 0.6, thickness: 0.6),
+          ];
+        }),
+      ],
     );
   }
 }

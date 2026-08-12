@@ -15,6 +15,7 @@ void main() async {
 
   try {
     await dotenv.load(fileName: ".env");
+    debugPrint('LOADED URL: [${dotenv.env['SUPABASE_URL']}]');
 
     await Supabase.initialize(
       url: (dotenv.env['SUPABASE_URL'] ?? '').trim(),

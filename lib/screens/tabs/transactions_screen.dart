@@ -230,19 +230,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  BadgeTone _statusTone(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return BadgeTone.success;
-      case 'pending':
-        return BadgeTone.warning;
-      case 'cancelled':
-        return BadgeTone.danger;
-      default:
-        return BadgeTone.neutral;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -308,130 +295,164 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               ),
                             ),
                           )
-                        : SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(minWidth: 840),
-                              child: DataTable(
-                                showCheckboxColumn: false,
-                                headingRowColor:
-                                    WidgetStateProperty.all(Colors.transparent),
-                                dividerThickness: 0.6,
-                                columnSpacing: 28,
-                                horizontalMargin: 4,
-                                headingTextStyle: AppTextStyles.label,
-                                dataTextStyle: AppTextStyles.body,
-                                columns: [
-                                  const DataColumn(label: Text('BILL NO.')),
-                                  const DataColumn(label: Text('TYPE')),
-                                  const DataColumn(
-                                      label: Text('TOTAL ITEMS'), numeric: true),
-                                  const DataColumn(label: Text('CREATED BY')),
-                                  const DataColumn(label: Text('ISSUED TO')),
-                                  const DataColumn(label: Text('STATUS')),
-                                  const DataColumn(label: Text('DATE')),
-                                  // Action column only shown to admins.
-                                  if (_isAdmin)
-                                    const DataColumn(label: Text('')),
-                                ],
-                                rows: _transactions.map((t) {
-                                  final isInbound = t.type == 'inbound';
-                                  final isCancelled =
-                                      t.status.toLowerCase() == 'cancelled';
-                                  final dateStr = t.createdAt != null
-                                      ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
-                                      : 'N/A';
+                        : Column(
+                            children: [
+                              // Header row.
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSpacing.sm),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: Text('BILL NO.',
+                                          style: AppTextStyles.label),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text('TYPE',
+                                          style: AppTextStyles.label),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text('CREATED BY',
+                                          style: AppTextStyles.label),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text('TOTAL ITEMS',
+                                          textAlign: TextAlign.right,
+                                          style: AppTextStyles.label),
+                                    ),
+                                    if (_isAdmin)
+                                      const SizedBox(width: 84),
+                                  ],
+                                ),
+                              ),
+                              const Divider(height: 0.6, thickness: 0.6),
+                              // Data rows.
+                              ...List.generate(_transactions.length, (index) {
+                                final t = _transactions[index];
+                                final isInbound = t.type == 'inbound';
+                                final isCancelled =
+                                    t.status.toLowerCase() == 'cancelled';
+                                final dateStr = t.createdAt != null
+                                    ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+                                    : 'N/A';
 
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(
-                                        Text(
-                                          t.billNo,
-                                          style: AppTextStyles.mono.copyWith(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        StatusBadge(
-                                          label: isInbound ? '+ Inbound' : '- Outbound',
-                                          tone: isInbound
-                                              ? BadgeTone.success
-                                              : BadgeTone.danger,
-                                        ),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        Text('${t.totalItems}',
-                                            style: AppTextStyles.bodyMedium),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        Text(t.createdByName ?? 'User',
-                                            style: AppTextStyles.body),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        Text(t.issuedTo ?? '—',
-                                            style: AppTextStyles.body
-                                                .copyWith(color: AppColors.textSecondary)),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        t.isPendingSync
-                                            ? const StatusBadge(
-                                                label: 'Pending Sync',
-                                                tone: BadgeTone.warning,
-                                              )
-                                            : StatusBadge(
-                                                label: t.status,
-                                                tone: _statusTone(t.status)),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      DataCell(
-                                        Text(dateStr,
-                                            style: AppTextStyles.body.copyWith(
-                                                color: AppColors.textSecondary)),
-                                        onTap: () => _showTransactionDetails(t),
-                                      ),
-                                      // Admin-only actions: edit + delete.
-                                      if (_isAdmin)
-                                        DataCell(
-                                          Row(
+                                return InkWell(
+                                  onTap: () => _showTransactionDetails(t),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: AppSpacing.sm),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          flex: 5,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              IconButton(
-                                                onPressed: isCancelled
-                                                    ? null
-                                                    : () => _onEditTransaction(t),
-                                                icon: const Icon(
-                                                    Icons.edit_outlined,
-                                                    size: 19,
-                                                    color: AppColors.primary),
-                                                splashRadius: 18,
-                                                tooltip: isCancelled
-                                                    ? 'Cancelled transactions cannot be edited'
-                                                    : 'Edit Transaction',
+                                              Text(
+                                                t.billNo,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.mono
+                                                    .copyWith(
+                                                        color: AppColors
+                                                            .textPrimary,
+                                                        fontWeight:
+                                                            FontWeight.w600),
                                               ),
-                                              IconButton(
-                                                onPressed: () =>
-                                                    _onDeleteTransaction(t),
-                                                icon: const Icon(
-                                                    Icons.delete_outline_rounded,
-                                                    size: 19,
-                                                    color: AppColors.danger),
-                                                splashRadius: 18,
-                                                tooltip: 'Delete Transaction',
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                dateStr,
+                                                style: AppTextStyles.caption
+                                                    .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: StatusBadge(
+                                            label:
+                                                isInbound ? 'Receive' : 'Release',
+                                            tone: isInbound
+                                                ? BadgeTone.success
+                                                : BadgeTone.danger,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text(
+                                            t.createdByName ?? 'User',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.body,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                            '${t.totalItems}',
+                                            textAlign: TextAlign.right,
+                                            style: AppTextStyles.bodyMedium,
+                                          ),
+                                        ),
+                                        // Admin-only actions: edit + delete.
+                                        if (_isAdmin)
+                                          SizedBox(
+                                            width: 84,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                IconButton(
+                                                  onPressed: isCancelled
+                                                      ? null
+                                                      : () =>
+                                                          _onEditTransaction(t),
+                                                  icon: const Icon(
+                                                      Icons.edit_outlined,
+                                                      size: 19,
+                                                      color: AppColors.primary),
+                                                  splashRadius: 18,
+                                                  tooltip: isCancelled
+                                                      ? 'Cancelled transactions cannot be edited'
+                                                      : 'Edit Transaction',
+                                                ),
+                                                IconButton(
+                                                  onPressed: () =>
+                                                      _onDeleteTransaction(t),
+                                                  icon: const Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      size: 19,
+                                                      color: AppColors.danger),
+                                                  splashRadius: 18,
+                                                  tooltip: 'Delete Transaction',
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).expand((row) sync* {
+                                yield row;
+                                yield const Divider(
+                                    height: 0.6, thickness: 0.6);
+                              }),
+                            ],
                           ),
           ),
         ],

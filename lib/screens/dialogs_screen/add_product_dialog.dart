@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/product.dart';
-import '../../models/category.dart';
 import '../../services/product_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/notification_banner.dart';
@@ -35,12 +34,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
   final _newCategoryController = TextEditingController();
   final _remarksController = TextEditingController();
 
-  List<Category> _categories = [];
   int? _selectedCategoryId;
   String _selectedUnit = 'pcs';
   bool _loading = false;
-  bool _loadingCategories = true;
-  bool _showNewCategoryField = false;
 
   static const _units = [
     'pcs',
@@ -54,7 +50,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
     'liter',
     'bag'
   ];
-  
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -72,7 +68,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
     setState(() {
       _selectedCategoryId = null;
       _selectedUnit = 'pcs';
-      _showNewCategoryField = false;
     });
   }
 
@@ -161,93 +156,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           validator: (v) =>
                               v == null || v.trim().isEmpty ? 'Required' : null,
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      _buildField(
-                        label: 'Category',
-                        child: _loadingCategories
-                            ? const SizedBox(
-                                height: 48,
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                children: [
-                                  DropdownButtonFormField<int>(
-                                    initialValue: _selectedCategoryId,
-                                    decoration:
-                                        _inputDecoration('Select category'),
-                                    style: AppTextStyles.body
-                                        .copyWith(color: AppColors.textPrimary),
-                                    borderRadius: BorderRadius.circular(12),
-                                    items: _categories
-                                        .map((c) => DropdownMenuItem(
-                                              value: c.id,
-                                              child: Text(c.name),
-                                            ))
-                                        .toList(),
-                                    onChanged: (v) =>
-                                        setState(() => _selectedCategoryId = v),
-                                    validator: (v) => v == null
-                                        ? 'Please select a category'
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (!_showNewCategoryField)
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: TextButton.icon(
-                                        onPressed: () => setState(
-                                            () => _showNewCategoryField = true),
-                                        icon: const Icon(Icons.add_rounded,
-                                            size: 16),
-                                        label: Text('Add New Category',
-                                            style: AppTextStyles.caption
-                                                .copyWith(
-                                                    color: AppColors.primary)),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: AppColors.primary,
-                                          padding: EdgeInsets.zero,
-                                          minimumSize: const Size(0, 32),
-                                        ),
-                                      ),
-                                    ),
-                                  if (_showNewCategoryField)
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _newCategoryController,
-                                            style: AppTextStyles.body.copyWith(
-                                                color: AppColors.textPrimary),
-                                            decoration: _inputDecoration(
-                                                'New category name'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        IconButton(
-                                          onPressed: _addCategory,
-                                          icon: const Icon(Icons.check_rounded,
-                                              color: AppColors.success),
-                                          splashRadius: 18,
-                                        ),
-                                        IconButton(
-                                          onPressed: () => setState(() =>
-                                              _showNewCategoryField = false),
-                                          icon: const Icon(Icons.close_rounded,
-                                              color: AppColors.textMuted),
-                                          splashRadius: 18,
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
                       ),
                       const SizedBox(height: 18),
                       Row(

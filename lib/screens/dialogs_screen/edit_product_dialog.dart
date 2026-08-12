@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/product.dart';
-import '../../models/category.dart';
 import '../../services/product_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/notification_banner.dart';

@@ -34,7 +34,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
   final _newCategoryController = TextEditingController();
   final _remarksController = TextEditingController();
 
-  int? _selectedCategoryId;
   String _selectedUnit = 'pcs';
   bool _loading = false;
 
@@ -66,7 +65,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
     _newCategoryController.clear();
     _remarksController.clear();
     setState(() {
-      _selectedCategoryId = null;
       _selectedUnit = 'pcs';
     });
   }
@@ -78,7 +76,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
     try {
       final product = Product(
         productName: _nameController.text.trim(),
-        categoryId: _selectedCategoryId,
         quantity: int.tryParse(_quantityController.text.trim()) ?? 0,
         unit: _selectedUnit,
         remarks: _remarksController.text.trim(),

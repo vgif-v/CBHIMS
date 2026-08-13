@@ -55,7 +55,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
         TextEditingController(text: widget.product.quantity.toString());
     _remarksController =
         TextEditingController(text: widget.product.remarks ?? '');
-    _selectedCategoryId = widget.product.categoryId;
     _selectedUnit = widget.product.unit;
   }
 

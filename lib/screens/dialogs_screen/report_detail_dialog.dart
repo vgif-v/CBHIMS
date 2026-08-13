@@ -194,7 +194,6 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
             : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
         return [
           p.productName,
-          p.categoryName ?? 'Uncategorized',
           '${p.quantity}',
           p.unit,
           statusStr,
@@ -300,13 +299,13 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
       }
     } else {
       csvBuffer.writeln(
-          '"Product Name","Category","Quantity","Unit","Stock Status"');
+          '"Product Name","Quantity","Unit"');
       for (final p in _filteredProducts) {
         final statusStr = p.quantity <= 0
             ? 'Out of stock'
             : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
         csvBuffer.writeln(
-            '"${p.productName}","${p.categoryName ?? ''}","${p.quantity}","${p.unit}","$statusStr"');
+            '"${p.productName}","${p.quantity}","${p.unit}","$statusStr"');
       }
     }
 
@@ -601,7 +600,6 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
               return TableRow(
                 children: [
                   _TableCellText(p.productName, isBold: true),
-                  _TableCellText(p.categoryName ?? 'Uncategorized'),
                   _TableCellText('${p.quantity} ${p.unit}'),
                   _TableCellWidget(StatusBadge(label: statusStr, tone: tone)),
                 ],

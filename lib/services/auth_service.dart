@@ -1,6 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+
+class PendingApprovalException implements Exception {
+  @override
+  String toString() => 'Your account is pending approval by an administrator.';
+}
+
 /// Thin wrapper around Supabase Auth that every screen can import
 /// without coupling directly to the Supabase SDK.
 class AuthService extends ChangeNotifier {
@@ -52,11 +58,11 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Fetch user role from the `users` table in Supabase.
-  Future<String> fetchUserRole() async {
+  Future<String?> fetchUserRole() async {
     final uid = userId;
     if (uid == null) {
       _resetRole();
-      return 'Staff';
+      return null;
     }
 
     _isRoleLoading = true;
@@ -71,40 +77,27 @@ class AuthService extends ChangeNotifier {
 
       if (res != null && res['role'] != null) {
         final r = res['role'].toString().trim();
-        if (r.isNotEmpty) {
-          _cachedRole = r[0].toUpperCase() + r.substring(1).toLowerCase();
-        } else {
-          _cachedRole = 'Staff';
-        }
+        _cachedRole = r.isNotEmpty
+            ? r[0].toUpperCase() + r.substring(1).toLowerCase()
+            : null; // empty string treated as pending, not Staff
       } else {
-        // User not yet in public.users table — auto-insert with a safe
-        // default. NOTE: defaults to 'Staff', not 'Admin' — a brand new
-        // row should never grant elevated access by default.
-        final userEmail = email;
-        final userFullName = displayName;
-        _cachedRole = 'Staff';
-        debugPrint('[AuthService] fetchUserRole raw result for uid=$uid: $res');
-
-        try {
-          await _client.from('users').upsert({
-            'id': uid,
-            'full_name': userFullName.isNotEmpty ? userFullName : 'New User',
-            'email': userEmail,
-            'role': 'staff',
-          });
-        } catch (e) {
-          debugPrint('[AuthService] Could not auto-create user row: $e');
-        }
+        // No row, or role is null — this is a pending/unapproved user.
+        // Do NOT auto-upsert 'staff' here; that was silently granting access.
+        _cachedRole = null;
+        debugPrint('[AuthService] uid=$uid has no approved role yet');
       }
     } catch (e) {
       debugPrint('[AuthService] Could not fetch user role: $e');
-      _cachedRole ??= 'Staff';
+      _cachedRole = null;
     }
 
     _isRoleLoading = false;
     notifyListeners();
-    return _cachedRole!;
+    return _cachedRole;
   }
+
+  /// True if the user has signed up but has not yet been assigned a role.
+  bool get isPending => currentUser != null && _cachedRole == null && !_isRoleLoading;
 
   /// Check if the logged in user is an Admin.
   bool get isAdmin => (_cachedRole ?? '').toLowerCase() == 'admin';
@@ -155,7 +148,6 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String fullName,
   }) async {
-    // Make sure no stale role from a previous session leaks into this flow.
     _resetRole();
 
     final response = await _client.auth.signUp(
@@ -164,7 +156,6 @@ class AuthService extends ChangeNotifier {
       data: {'full_name': fullName},
     );
 
-    // If signup succeeded and we have a user, insert into public.users
     final user = response.user;
     if (user != null) {
       try {
@@ -172,10 +163,9 @@ class AuthService extends ChangeNotifier {
           'id': user.id,
           'full_name': fullName,
           'email': email,
-          'role': 'staff',
+          'role': null, // pending approval — an admin must assign a role
         });
       } catch (e) {
-        // Log but don't block signup — the trigger may already handle this
         debugPrint('[AuthService] Failed to insert into users table: $e');
       }
     }

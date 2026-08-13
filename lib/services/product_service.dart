@@ -25,21 +25,8 @@ class ProductService {
   Future<List<Product>> getAll() async {
     final response = await _client
         .from('products')
-        .select('*, categories(name)')
+        .select()
         .eq('is_active', true)
-        .order('product_name');
-    return (response as List)
-        .map((row) => Product.fromJson(row as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Fetch products filtered by category id.
-  Future<List<Product>> getByCategory(int categoryId) async {
-    final response = await _client
-        .from('products')
-        .select('*, categories(name)')
-        .eq('is_active', true)
-        .eq('category_id', categoryId)
         .order('product_name');
     return (response as List)
         .map((row) => Product.fromJson(row as Map<String, dynamic>))
@@ -50,7 +37,7 @@ class ProductService {
   Future<List<Product>> search(String query) async {
     final response = await _client
         .from('products')
-        .select('*, categories(name)')
+        .select()
         .eq('is_active', true)
         .ilike('product_name', '%$query%')
         .order('product_name');

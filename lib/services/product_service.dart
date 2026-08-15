@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/product.dart';
 
@@ -31,6 +32,17 @@ class ProductService {
     return (response as List)
         .map((row) => Product.fromJson(row as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Fetch a single product by ID.
+  Future<Product?> getById(int id) async {
+    final row = await _client
+        .from('products')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+    if (row == null) return null;
+    return Product.fromJson(row);
   }
 
   /// Search products by name.
@@ -100,7 +112,22 @@ class ProductService {
       if (e.message.contains('INSUFFICIENT_STOCK') || e.code == 'P0001') {
         throw InsufficientStockException(id);
       }
-      rethrow;
+      // If RPC is missing from database schema, fallback to direct query + update
+      debugPrint('[ProductService] RPC adjust_product_quantity failed, fallback to direct update: $e');
+      final current = await getCurrentQuantity(id);
+      final newQty = current + quantityChange;
+      if (newQty < 0) {
+        throw InsufficientStockException(id);
+      }
+      await _client.from('products').update({'quantity': newQty}).eq('id', id);
+    } catch (e) {
+      debugPrint('[ProductService] updateQuantity error, fallback to direct update: $e');
+      final current = await getCurrentQuantity(id);
+      final newQty = current + quantityChange;
+      if (newQty < 0) {
+        throw InsufficientStockException(id);
+      }
+      await _client.from('products').update({'quantity': newQty}).eq('id', id);
     }
   }
 

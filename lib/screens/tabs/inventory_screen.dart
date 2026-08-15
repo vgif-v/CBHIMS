@@ -7,6 +7,7 @@ import '../../widgets/notification_banner.dart';
 import '../../widgets/section_card.dart';
 import '../dialogs_screen/add_product_dialog.dart';
 import '../dialogs_screen/edit_product_dialog.dart';
+import '../product_ledger_screen.dart';
 
 enum ProductSort { recentlyAdded, nameAsc, nameDesc }
 
@@ -81,6 +82,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
         _loadData();
       },
     );
+  }
+
+  Future<void> _onOpenProductLedger(Product p) async {
+    await ProductLedgerScreen.navigateTo(context, p);
+    _loadData();
   }
 
   Future<void> _onEditProduct(Product p) async {
@@ -237,6 +243,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           )
                         : _ProductTable(
                             products: filtered,
+                            onSelectProduct: _onOpenProductLedger,
                             onEdit: _onEditProduct,
                             onDelete: _onDeleteProduct,
                           ),
@@ -322,11 +329,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
 class _ProductTable extends StatelessWidget {
   final List<Product> products;
+  final Function(Product) onSelectProduct;
   final Function(Product) onEdit;
   final Function(Product) onDelete;
 
   const _ProductTable({
     required this.products,
+    required this.onSelectProduct,
     required this.onEdit,
     required this.onDelete,
   });
@@ -368,50 +377,57 @@ class _ProductTable extends StatelessWidget {
           ...products.map((p) {
             return Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          p.productName,
-                          style: AppTextStyles.bodyMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(
-                        width: _stockColumnWidth,
-                        child: Text(
-                          '${p.quantity} ${p.unit}',
-                          textAlign: TextAlign.right,
-                          style: AppTextStyles.bodyMedium,
-                        ),
-                      ),
-                      const SizedBox(width: 28),
-                      SizedBox(
-                        width: _actionsColumnWidth,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              onPressed: () => onEdit(p),
-                              icon: const Icon(Icons.edit_outlined,
-                                  size: 18, color: AppColors.primary),
-                              splashRadius: 18,
-                              tooltip: 'Edit',
+                InkWell(
+                  onTap: () => onSelectProduct(p),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            p.productName,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
-                            IconButton(
-                              onPressed: () => onDelete(p),
-                              icon: const Icon(Icons.delete_outline_rounded,
-                                  size: 18, color: AppColors.danger),
-                              splashRadius: 18,
-                              tooltip: 'Delete',
-                            ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                        SizedBox(
+                          width: _stockColumnWidth,
+                          child: Text(
+                            '${p.quantity} ${p.unit}',
+                            textAlign: TextAlign.right,
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 28),
+                        SizedBox(
+                          width: _actionsColumnWidth,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                onPressed: () => onEdit(p),
+                                icon: const Icon(Icons.edit_outlined,
+                                    size: 18, color: AppColors.primary),
+                                splashRadius: 18,
+                                tooltip: 'Edit',
+                              ),
+                              IconButton(
+                                onPressed: () => onDelete(p),
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    size: 18, color: AppColors.danger),
+                                splashRadius: 18,
+                                tooltip: 'Delete',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const Divider(height: 1, color: AppColors.border),

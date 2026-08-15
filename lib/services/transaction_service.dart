@@ -760,8 +760,7 @@ class TransactionService {
         type.toLowerCase() == 'purchase';
     for (final newItem in items) {
       if (newItem.productId != null) {
-        final applyDelta =
-            newIsReceive ? newItem.quantity : -newItem.quantity;
+        final applyDelta = newIsReceive ? newItem.quantity : -newItem.quantity;
         await productService.updateQuantity(newItem.productId!, applyDelta);
       }
     }
@@ -820,24 +819,8 @@ class TransactionService {
     return getById(transactionId);
   }
 
-  /// Permanently delete a transaction and its items, and reverse its stock impact.
+  /// Permanently delete a transaction and its items without modifying product stock.
   Future<void> deleteTransaction(int transactionId) async {
-    try {
-      final oldTxn = await getById(transactionId);
-      final oldIsReceive = oldTxn.type.toLowerCase() == 'receive' ||
-          oldTxn.type.toLowerCase() == 'inbound' ||
-          oldTxn.type.toLowerCase() == 'purchase';
-      final productService = ProductService.instance;
-      for (final item in oldTxn.items) {
-        if (item.productId != null) {
-          final revertDelta = oldIsReceive ? -item.quantity : item.quantity;
-          await productService.updateQuantity(item.productId!, revertDelta);
-        }
-      }
-    } catch (e) {
-      debugPrint('[TransactionService] Failed to revert stock on delete: $e');
-    }
-
     try {
       await _client
           .from('transaction_items')

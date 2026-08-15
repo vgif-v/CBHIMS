@@ -3,11 +3,9 @@ import 'transaction_item.dart';
 class Transaction {
   final int? id;
   final String billNo;
-  final String type; // 'inbound' or 'outbound'
-  final String status; // 'Pending', 'Completed'
+  final String type; // 'Receive' or 'Release'
   final int totalItems;
   final String? remarks;
-  final String? issuedTo;
   final String? createdBy; // UUID of the user
   final String? createdByName; // joined from users table
   final DateTime? createdAt;
@@ -28,10 +26,8 @@ class Transaction {
     this.id,
     required this.billNo,
     required this.type,
-    this.status = 'Pending',
     this.totalItems = 0,
     this.remarks,
-    this.issuedTo,
     this.createdBy,
     this.createdByName,
     this.createdAt,
@@ -78,11 +74,9 @@ class Transaction {
     return Transaction(
       id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
       billNo: json['bill_no']?.toString() ?? '',
-      type: json['type']?.toString() ?? 'inbound',
-      status: json['status']?.toString() ?? 'Pending',
+      type: json['type']?.toString() ?? 'Receive', // default to 'Receive' if not provided
       totalItems: parsedTotalItems,
       remarks: json['remarks']?.toString(),
-      issuedTo: json['issued_to']?.toString(),
       createdBy: json['created_by']?.toString(),
       createdByName: userName,
       createdAt: parsedDate,
@@ -97,10 +91,9 @@ class Transaction {
     return {
       'bill_no': billNo,
       'type': type,
-      'status': status,
+      'status': 'Completed',
       'total_items': totalItems,
       if (remarks != null && remarks!.isNotEmpty) 'remarks': remarks,
-      if (issuedTo != null && issuedTo!.isNotEmpty) 'issued_to': issuedTo,
       if (createdBy != null) 'created_by': createdBy,
     };
   }

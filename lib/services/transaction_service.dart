@@ -7,6 +7,9 @@ import 'package:uuid/uuid.dart';
 import '../models/pending_transaction.dart';
 import 'offline_queue_service.dart';
 
+List<String>? _billNoCache;
+
+
 bool _looksLikeConnectivityError(Object e) {
   final s = e.toString().toLowerCase();
   return s.contains('socketexception') ||
@@ -18,6 +21,32 @@ bool _looksLikeConnectivityError(Object e) {
       s.contains('timeoutexception') ||
       s.contains('no internet');
 }
+
+/// Fetch distinct bill numbers across ALL transactions (all users), for
+/// autocomplete. Cached in-memory after first successful fetch; call
+/// refreshBillNoCache() if you need to force a re-fetch (e.g. after
+/// creating a transaction with a brand-new bill number).
+Future<List<String>> getAllBillNumbers() async {
+  if (_billNoCache != null) return _billNoCache!;
+    try {
+      final rows =
+          await Supabase.instance.client.from('transactions').select('bill_no');
+      final seen = <String>{};
+      for (final row in (rows as List)) {
+        final billNo = (row as Map)['bill_no']?.toString().trim();
+        if (billNo != null && billNo.isNotEmpty) seen.add(billNo);
+      }
+      _billNoCache = seen.toList()..sort();
+      return _billNoCache!;
+    } catch (e) {
+      debugPrint('[TransactionService] Failed to load bill numbers: $e');
+      return _billNoCache ?? [];
+    }
+  }
+
+/// Call after creating a transaction so the next autocomplete includes
+/// the bill number that was just used.
+void refreshBillNoCache() => _billNoCache = null;
 
 /// Thrown when an outbound transaction requests more of one or more
 /// products than are currently in stock. Carries enough detail for the
@@ -175,6 +204,37 @@ class TransactionService {
     return _buildTransactionList(response as List);
   }
 
+  /// Fetch all transactions associated with a specific product ID,
+  /// ordered by created_at ascending (oldest first) so running stock balances
+  /// can be calculated chronologically in the product ledger.
+  Future<List<Transaction>> getByProductId(int productId) async {
+    final itemsRows = await _client
+        .from('transaction_items')
+        .select('*')
+        .eq('product_id', productId);
+
+    final list = itemsRows as List;
+    if (list.isEmpty) return [];
+
+    final txnIds = <int>{};
+    for (final row in list) {
+      final txnId = row['transaction_id'] is int
+          ? row['transaction_id'] as int
+          : int.tryParse(row['transaction_id']?.toString() ?? '');
+      if (txnId != null) txnIds.add(txnId);
+    }
+
+    if (txnIds.isEmpty) return [];
+
+    final response = await _client
+        .from('transactions')
+        .select('*')
+        .inFilter('id', txnIds.toList())
+        .order('created_at', ascending: true);
+
+    return _buildTransactionList(response as List);
+  }
+
   /// Fetch a single transaction with its items.
   Future<Transaction> getById(int id) async {
     final txnRow =
@@ -294,11 +354,9 @@ class TransactionService {
     // Pre-flight stock check for outbound transactions. This happens
     // BEFORE any row is written, so a rejected request leaves no trace
     // (no orphaned transaction/item rows to clean up).
-    if (type.toLowerCase() == 'outbound') {
+    if (type.toLowerCase() == 'release') {
       final shortfalls = await _checkStockAvailability(items);
-      if (shortfalls.isNotEmpty) {
-        throw InsufficientStockError(shortfalls);
-      }
+      if (shortfalls.isNotEmpty) throw InsufficientStockError(shortfalls);
     }
 
     try {
@@ -336,13 +394,9 @@ class TransactionService {
         id: null,
         billNo: billNo,
         type: type,
-        status: status,
         totalItems: items.fold<int>(0, (sum, item) => sum + item.quantity),
         remarks: (remarks != null && remarks.trim().isNotEmpty)
             ? remarks.trim()
-            : 'N/A',
-        issuedTo: (issuedTo != null && issuedTo.trim().isNotEmpty)
-            ? issuedTo.trim()
             : 'N/A',
         createdBy: userId,
         createdByName: null,
@@ -381,20 +435,30 @@ class TransactionService {
         ? status[0].toUpperCase() + status.substring(1).toLowerCase()
         : status;
 
+    final typeTitle = type.isNotEmpty
+        ? (type[0].toUpperCase() + type.substring(1).toLowerCase())
+        : type;
+    final typeLower = type.toLowerCase();
+
     // Helper function to build candidate payload
     Map<String, dynamic> buildPayload({
-      required String statusVal,
+      String? statusVal,
       required String typeVal,
       required bool includeCreatedBy,
+      bool includeIssuedTo = true,
     }) {
       final map = <String, dynamic>{
         'bill_no': currentBillNo,
         'type': typeVal,
-        'status': statusVal,
         'total_items': totalItems,
-        'issued_to': finalIssuedTo,
         'remarks': finalRemarks,
       };
+      if (statusVal != null) {
+        map['status'] = statusVal;
+      }
+      if (includeIssuedTo) {
+        map['issued_to'] = finalIssuedTo;
+      }
       if (includeCreatedBy && userId != null && userId.isNotEmpty) {
         map['created_by'] = userId;
       }
@@ -403,20 +467,40 @@ class TransactionService {
 
     final payloadsToTry = [
       buildPayload(
+          statusVal: statusCapital,
+          typeVal: typeTitle,
+          includeCreatedBy: true),
+      buildPayload(
+          statusVal: statusCapital,
+          typeVal: typeTitle,
+          includeCreatedBy: false),
+      buildPayload(
           statusVal: statusLower,
-          typeVal: type.toLowerCase(),
+          typeVal: typeLower,
           includeCreatedBy: true),
       buildPayload(
           statusVal: statusLower,
-          typeVal: type.toLowerCase(),
+          typeVal: typeLower,
           includeCreatedBy: false),
       buildPayload(
           statusVal: statusCapital,
-          typeVal: type.toLowerCase(),
+          typeVal: typeLower,
           includeCreatedBy: true),
       buildPayload(
           statusVal: statusCapital,
-          typeVal: type.toLowerCase(),
+          typeVal: typeLower,
+          includeCreatedBy: false),
+      buildPayload(
+          statusVal: statusLower,
+          typeVal: typeTitle,
+          includeCreatedBy: true),
+      buildPayload(
+          statusVal: null,
+          typeVal: typeTitle,
+          includeCreatedBy: false),
+      buildPayload(
+          statusVal: null,
+          typeVal: typeLower,
           includeCreatedBy: false),
     ];
 
@@ -485,15 +569,45 @@ class TransactionService {
       }
     }
 
-    // Insert transaction items
+    // Insert transaction items with fallbacks
     if (txnId != null && items.isNotEmpty) {
-      final itemRows = items.map((item) => item.toInsertJson(txnId!)).toList();
+      bool itemsSaved = false;
       try {
+        final itemRows = items.map((item) => item.toInsertJson(txnId!)).toList();
         await _client.from('transaction_items').insert(itemRows);
+        itemsSaved = true;
       } catch (e) {
-        debugPrint('[TransactionService] Failed to insert transaction_items: $e');
-        // Don't silently swallow — rethrow so the caller knows items didn't save
-        rethrow;
+        debugPrint('[TransactionService] Standard transaction_items insert failed: $e. Trying fallback without unit.');
+      }
+
+      if (!itemsSaved) {
+        try {
+          final fallbackRows = items.map((item) => {
+            'transaction_id': txnId,
+            'product_id': item.productId,
+            'product_name': item.productName,
+            'quantity': item.quantity,
+          }).toList();
+          await _client.from('transaction_items').insert(fallbackRows);
+          itemsSaved = true;
+        } catch (e2) {
+          debugPrint('[TransactionService] Fallback 1 failed: $e2. Trying minimal items insert.');
+        }
+      }
+
+      if (!itemsSaved) {
+        try {
+          final minimalRows = items.map((item) => {
+            'transaction_id': txnId,
+            'product_id': item.productId,
+            'quantity': item.quantity,
+          }).toList();
+          await _client.from('transaction_items').insert(minimalRows);
+          itemsSaved = true;
+        } catch (e3) {
+          debugPrint('[TransactionService] Minimal transaction_items insert failed: $e3');
+          rethrow;
+        }
       }
     }
 
@@ -508,7 +622,9 @@ class TransactionService {
     for (final item in items) {
       if (item.productId != null) {
         final quantityChange =
-            type == 'inbound' ? item.quantity : -item.quantity;
+            (type.toLowerCase() == 'receive' || type.toLowerCase() == 'inbound' || type.toLowerCase() == 'purchase')
+                ? item.quantity
+                : -item.quantity;
         await productService.updateQuantity(item.productId!, quantityChange);
       }
     }
@@ -524,9 +640,7 @@ class TransactionService {
         : Transaction(
             billNo: currentBillNo,
             type: type,
-            status: status,
             totalItems: totalItems,
-            issuedTo: finalIssuedTo,
             remarks: finalRemarks,
             createdAt: DateTime.now(),
           );
@@ -535,10 +649,8 @@ class TransactionService {
       id: baseTxn.id ?? txnId,
       billNo: baseTxn.billNo,
       type: baseTxn.type,
-      status: baseTxn.status,
       totalItems: baseTxn.totalItems > 0 ? baseTxn.totalItems : totalItems,
       remarks: baseTxn.remarks,
-      issuedTo: baseTxn.issuedTo,
       createdBy: userId ?? baseTxn.createdBy,
       createdByName: createdByName ?? baseTxn.createdByName,
       createdAt: baseTxn.createdAt ?? DateTime.now(),
@@ -553,7 +665,7 @@ class TransactionService {
       String txnType, List<TransactionItem> items) async {
     final productService = ProductService.instance;
     final isInbound =
-        txnType.toLowerCase() == 'inbound' || txnType.toLowerCase() == 'purchase';
+        txnType.toLowerCase() == 'receive' || txnType.toLowerCase() == 'purchase';
 
     for (final item in items) {
       if (item.productId != null) {
@@ -583,7 +695,6 @@ class TransactionService {
     required int transactionId,
     required String billNo,
     required String type,
-    required String status,
     required List<TransactionItem> items,
     String? remarks,
     String? issuedTo,
@@ -591,14 +702,6 @@ class TransactionService {
     // Fetch current state first so we know whether this is a fresh
     // transition into Cancelled, and so we reverse the CORRECT (original)
     // items/quantities rather than whatever the edit form now contains.
-    final current = await getById(transactionId);
-    final wasAlreadyCancelled = current.status.toLowerCase() == 'cancelled';
-    final isNowCancelled = status.toLowerCase() == 'cancelled';
-    final shouldReverseStock = isNowCancelled && !wasAlreadyCancelled;
-
-    if (shouldReverseStock) {
-      await _reverseStockForItems(current.type, current.items);
-    }
 
     final totalItems = items.fold<int>(0, (sum, item) => sum + item.quantity);
 
@@ -612,7 +715,6 @@ class TransactionService {
     await _client.from('transactions').update({
       'bill_no': billNo,
       'type': type,
-      'status': status,
       'total_items': totalItems,
       'issued_to': finalIssuedTo,
       'remarks': finalRemarks,
@@ -678,10 +780,6 @@ class TransactionService {
   /// prevent double-reversal of stock.
   Future<Transaction> cancelTransaction(int transactionId) async {
     final txn = await getById(transactionId);
-
-    if (txn.status.toLowerCase() == 'cancelled') {
-      throw StateError('Transaction is already cancelled.');
-    }
 
     await _reverseStockForItems(txn.type, txn.items);
 

@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 
 import '../models/transaction.dart';
 import '../services/auth_service.dart';
+import '../services/product_service.dart';
 import '../services/transaction_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/buttons.dart';
@@ -33,6 +34,7 @@ class TransactionReceiptScreen extends StatefulWidget {
 class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   late Transaction transaction;
   bool _loadingItems = true;
+  Map<int, int> _productBalances = {};
 
   // Pre-cached assets for fast PDF generation
   pw.MemoryImage? _cachedLogoImage;
@@ -61,8 +63,10 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
         if (!mounted) return;
         setState(() {
           transaction = fullTxn;
-          _loadingItems = false;
         });
+        await _loadProductBalances();
+        if (!mounted) return;
+        setState(() => _loadingItems = false);
         return;
       } catch (e) {
         debugPrint('[Receipt] Failed to load full transaction: $e');
@@ -70,34 +74,54 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
     }
 
     // If no id or fetch failed, use what we have
+    await _loadProductBalances();
     if (!mounted) return;
     setState(() => _loadingItems = false);
   }
 
+  Future<void> _loadProductBalances() async {
+    final balances = <int, int>{};
+    for (final item in transaction.items) {
+      if (item.productId != null && !balances.containsKey(item.productId)) {
+        try {
+          final product = await ProductService.instance.getById(item.productId!);
+          if (product != null) {
+            balances[item.productId!] = product.quantity;
+          }
+        } catch (_) {}
+      }
+    }
+    _productBalances = balances;
+  }
+
   Future<void> _printOrDownload(BuildContext context) async {
     final pdf = pw.Document();
-    final isInbound = transaction.type == 'inbound';
+    final isInbound = transaction.type.toLowerCase() == 'receive' ||
+        transaction.type.toLowerCase() == 'inbound';
     final dateStr = transaction.createdAt != null
         ? DateFormat('yyyy-MM-dd HH:mm').format(transaction.createdAt!)
         : 'N/A';
 
-    final headers = ['#', 'Product Name', 'Quantity', 'Unit'];
+    final headers = ['#', 'Product Name', 'Quantity', 'Balance'];
     List<List<String>> dataRows;
 
     if (transaction.items.isNotEmpty) {
       dataRows = transaction.items.asMap().entries.map((entry) {
         final idx = entry.key + 1;
         final item = entry.value;
+        final bal = (item.productId != null && _productBalances.containsKey(item.productId))
+            ? '${_productBalances[item.productId]}'
+            : '-';
         return [
           '$idx',
           item.productName.isNotEmpty ? item.productName : 'Item #$idx',
           '${item.quantity}',
-          'pcs',
+          bal,
         ];
       }).toList();
     } else {
       dataRows = [
-        ['1', 'General Stock', '${transaction.totalItems}', 'pcs']
+        ['1', 'General Stock', '${transaction.totalItems}', '-']
       ];
     }
 
@@ -184,19 +208,11 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'Transaction Type: ${isInbound ? "INBOUND (+)" : "OUTBOUND (-)"}',
+                  'Transaction Type: ${isInbound ? "RECEIVE" : "RELEASE"}',
                   style: pw.TextStyle(
                     fontSize: 12,
                     fontWeight: pw.FontWeight.bold,
                     color: isInbound ? PdfColors.green800 : PdfColors.red800,
-                  ),
-                ),
-                pw.Text(
-                  'Status: ${transaction.status}',
-                  style: const pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey800,
                   ),
                 ),
               ],
@@ -206,17 +222,6 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
               'Created By: $creatorName',
               style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
             ),
-            if (transaction.issuedTo != null &&
-                transaction.issuedTo!.isNotEmpty) ...[
-              pw.SizedBox(height: 6),
-              pw.Text(
-                'Issued To / Recipient: ${transaction.issuedTo}',
-                style: const pw.TextStyle(
-                    fontSize: 10,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey800),
-              ),
-            ],
             if (transaction.remarks != null &&
                 transaction.remarks!.isNotEmpty) ...[
               pw.SizedBox(height: 6),
@@ -261,7 +266,8 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isInbound = transaction.type == 'inbound';
+    final isInbound = transaction.type.toLowerCase() == 'receive' ||
+        transaction.type.toLowerCase() == 'inbound';
     final dateStr = transaction.createdAt != null
         ? DateFormat('MMM dd, yyyy — hh:mm a').format(transaction.createdAt!)
         : 'N/A';
@@ -350,7 +356,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                 fontWeight: FontWeight.bold, fontSize: 16)),
                         const SizedBox(height: 4),
                         StatusBadge(
-                          label: isInbound ? '+ INBOUND' : '- OUTBOUND',
+                          label: isInbound ? '+ RECEIVE' : '- RELEASE',
                           tone:
                               isInbound ? BadgeTone.success : BadgeTone.danger,
                         ),
@@ -385,47 +391,8 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Status', style: AppTextStyles.label),
-                          const SizedBox(height: 4),
-                          StatusBadge(
-                            label: transaction.status,
-                            tone:
-                                transaction.status.toLowerCase() == 'completed'
-                                    ? BadgeTone.success
-                                    : BadgeTone.warning,
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
-
-                if (transaction.issuedTo != null &&
-                    transaction.issuedTo!.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Text('Issued To / Recipient', style: AppTextStyles.label),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2)),
-                    ),
-                    child: Text(
-                      transaction.issuedTo!,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
 
                 if (transaction.remarks != null &&
                     transaction.remarks!.isNotEmpty) ...[
@@ -474,8 +441,13 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                 child: Text('PRODUCT NAME',
                                     style: AppTextStyles.label)),
                             SizedBox(
-                                width: 100,
-                                child: Text('QUANTITY',
+                                width: 80,
+                                child: Text('QTY',
+                                    textAlign: TextAlign.right,
+                                    style: AppTextStyles.label)),
+                            SizedBox(
+                                width: 80,
+                                child: Text('BALANCE',
                                     textAlign: TextAlign.right,
                                     style: AppTextStyles.label)),
                           ],
@@ -522,12 +494,22 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                     child: Text(item.productName,
                                         style: AppTextStyles.bodyMedium)),
                                 SizedBox(
-                                  width: 100,
+                                  width: 80,
                                   child: Text(
                                     '${item.quantity}',
                                     textAlign: TextAlign.right,
                                     style: AppTextStyles.bodyLarge
                                         .copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 80,
+                                  child: Text(
+                                    (item.productId != null && _productBalances.containsKey(item.productId))
+                                        ? '${_productBalances[item.productId]}'
+                                        : '-',
+                                    textAlign: TextAlign.right,
+                                    style: AppTextStyles.bodyMedium,
                                   ),
                                 ),
                               ],

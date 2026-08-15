@@ -7,7 +7,6 @@ import '../../services/offline_queue_service.dart';
 import '../../services/sync_service.dart';
 import '../../services/transaction_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/buttons.dart';
 import '../../widgets/notification_banner.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_badge.dart';
@@ -38,8 +37,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _loadTransactions();
 
     // Auto-sync and refresh whenever we come back online.
-    _syncSubscription =
-        ConnectivityService.instance.onOnlineStatusChanged.listen((isOnline) async {
+    _syncSubscription = ConnectivityService.instance.onOnlineStatusChanged
+        .listen((isOnline) async {
       if (isOnline) {
         await SyncService.instance.syncPendingTransactions();
         if (mounted) _loadTransactions();
@@ -68,10 +67,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return Transaction(
           billNo: p.billNo,
           type: p.type,
-          status: p.status,
           totalItems: p.items.fold<int>(0, (sum, item) => sum + item.quantity),
           remarks: p.remarks,
-          issuedTo: p.issuedTo,
           createdBy: p.userId,
           createdAt: p.queuedAt,
           items: p.items,
@@ -104,8 +101,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  Future<void> _onAddTransaction() async {
-    final added = await AddTransactionScreen.show(context);
+  Future<void> _onReceive() async {
+    final added =
+        await AddTransactionScreen.show(context, initialType: 'Receive');
+    if (added == true) {
+      _loadTransactions();
+    }
+  }
+
+  Future<void> _onRelease() async {
+    final added =
+        await AddTransactionScreen.show(context, initialType: 'Release');
     if (added == true) {
       _loadTransactions();
     }
@@ -121,9 +127,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       return;
     }
     try {
-      // Fetch the full transaction (with items) before opening edit mode.
-      final full =
-          txn.id != null ? await TransactionService.instance.getById(txn.id!) : txn;
+      final full = txn.id != null
+          ? await TransactionService.instance.getById(txn.id!)
+          : txn;
       if (!mounted) return;
       final updated = await AddTransactionScreen.showEdit(context, full);
       if (updated == true) {
@@ -159,7 +165,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Transaction ${txn.billNo}?', style: AppTextStyles.h3),
+        title:
+            Text('Delete Transaction ${txn.billNo}?', style: AppTextStyles.h3),
         content: Text(
           'This will permanently delete this transaction and its items. '
           'This action cannot be undone and does NOT reverse stock — '
@@ -232,231 +239,309 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ScreenHeader(
-            title: 'Transactions',
-            subtitle: _loading
-                ? 'Loading transactions...'
-                : _pendingSyncCount > 0
-                    ? '${_transactions.length} total stock transactions '
-                        '· $_pendingSyncCount pending sync'
-                    : '${_transactions.length} total stock transactions',
-            actions: [
-              PrimaryButton(
-                label: 'Add Transaction',
-                icon: Icons.add_rounded,
-                onPressed: _onAddTransaction,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SectionCard(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
-            child: _loading
-                ? const SizedBox(
-                    height: 240,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _error != null
-                    ? SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Failed to load transactions',
-                                  style: AppTextStyles.h3),
-                              const SizedBox(height: 8),
-                              Text(_error!,
-                                  style: AppTextStyles.caption
-                                      .copyWith(color: AppColors.danger)),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _loadTransactions,
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : _transactions.isEmpty
-                        ? SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: Text(
-                                'No transactions recorded yet. Click "Add Transaction" to create one.',
-                                style: AppTextStyles.body
-                                    .copyWith(color: AppColors.textSecondary),
-                              ),
-                            ),
-                          )
-                        : Column(
-                            children: [
-                              // Header row.
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: AppSpacing.sm),
-                                child: Row(
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ScreenHeader(
+                  title: 'Transactions',
+                  subtitle: _loading
+                      ? 'Loading transactions...'
+                      : _pendingSyncCount > 0
+                          ? '${_transactions.length} total stock transactions '
+                              '· $_pendingSyncCount pending sync'
+                          : '${_transactions.length} total stock transactions',
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SectionCard(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                      AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 240,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : _error != null
+                          ? SizedBox(
+                              height: 200,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Expanded(
-                                      flex: 5,
-                                      child: Text('BILL NO.',
-                                          style: AppTextStyles.label),
+                                    Text('Failed to load transactions',
+                                        style: AppTextStyles.h3),
+                                    const SizedBox(height: 8),
+                                    Text(_error!,
+                                        style: AppTextStyles.caption
+                                            .copyWith(color: AppColors.danger)),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadTransactions,
+                                      child: const Text('Retry'),
                                     ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text('TYPE',
-                                          style: AppTextStyles.label),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text('CREATED BY',
-                                          style: AppTextStyles.label),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text('TOTAL ITEMS',
-                                          textAlign: TextAlign.right,
-                                          style: AppTextStyles.label),
-                                    ),
-                                    if (_isAdmin)
-                                      const SizedBox(width: 84),
                                   ],
                                 ),
                               ),
-                              const Divider(height: 0.6, thickness: 0.6),
-                              // Data rows.
-                              ...List.generate(_transactions.length, (index) {
-                                final t = _transactions[index];
-                                final isInbound = t.type == 'inbound';
-                                final isCancelled =
-                                    t.status.toLowerCase() == 'cancelled';
-                                final dateStr = t.createdAt != null
-                                    ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
-                                    : 'N/A';
+                            )
+                          : _transactions.isEmpty
+                              ? SizedBox(
+                                  height: 200,
+                                  child: Center(
+                                    child: Text(
+                                      'No transactions recorded yet. Click "Add Transaction" to create one.',
+                                      style: AppTextStyles.body.copyWith(
+                                          color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    // Header row.
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: AppSpacing.sm),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 5,
+                                            child: Text('BILL NO.',
+                                                style: AppTextStyles.label),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Text('TYPE',
+                                                style: AppTextStyles.label),
+                                          ),
+                                          Expanded(
+                                            flex: 3,
+                                            child: Text('CREATED BY',
+                                                style: AppTextStyles.label),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Text('TOTAL ITEMS',
+                                                textAlign: TextAlign.right,
+                                                style: AppTextStyles.label),
+                                          ),
+                                          if (_isAdmin)
+                                            const SizedBox(width: 84),
+                                        ],
+                                      ),
+                                    ),
+                                    const Divider(height: 0.6, thickness: 0.6),
+                                    // Data rows.
+                                    ...List.generate(_transactions.length,
+                                        (index) {
+                                      final t = _transactions[index];
+                                      final isInbound =
+                                          t.type.toLowerCase() == 'receive' ||
+                                              t.type.toLowerCase() == 'inbound';
+                                      final dateStr = t.createdAt != null
+                                          ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+                                          : 'N/A';
 
-                                return InkWell(
-                                  onTap: () => _showTransactionDetails(t),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: AppSpacing.sm),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          flex: 5,
-                                          child: Column(
+                                      return InkWell(
+                                        onTap: () => _showTransactionDetails(t),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: AppSpacing.sm),
+                                          child: Row(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
+                                                CrossAxisAlignment.center,
                                             children: [
-                                              Text(
-                                                t.billNo,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: AppTextStyles.mono
-                                                    .copyWith(
+                                              Expanded(
+                                                flex: 5,
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      t.billNo,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: AppTextStyles.mono
+                                                          .copyWith(
+                                                              color: AppColors
+                                                                  .textPrimary,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      dateStr,
+                                                      style: AppTextStyles
+                                                          .caption
+                                                          .copyWith(
                                                         color: AppColors
-                                                            .textPrimary,
+                                                            .textSecondary,
+                                                        fontSize: 12,
                                                         fontWeight:
-                                                            FontWeight.w600),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                dateStr,
-                                                style: AppTextStyles.caption
-                                                    .copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: StatusBadge(
+                                                  label: isInbound
+                                                      ? 'Receive'
+                                                      : 'Release',
+                                                  tone: isInbound
+                                                      ? BadgeTone.success
+                                                      : BadgeTone.danger,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text(
+                                                  t.createdByName ?? 'User',
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: AppTextStyles.body,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  '${t.totalItems}',
+                                                  textAlign: TextAlign.right,
+                                                  style:
+                                                      AppTextStyles.bodyMedium,
+                                                ),
+                                              ),
+                                              // Admin-only actions: edit + delete.
+                                              if (_isAdmin)
+                                                SizedBox(
+                                                  width: 84,
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.end,
+                                                    children: [
+                                                      IconButton(
+                                                        onPressed: () =>
+                                                            _onEditTransaction(
+                                                                t),
+                                                        icon: const Icon(
+                                                            Icons.edit_outlined,
+                                                            size: 18,
+                                                            color: AppColors
+                                                                .primary),
+                                                        splashRadius: 18,
+                                                        tooltip:
+                                                            'Edit Transaction',
+                                                      ),
+                                                      IconButton(
+                                                        onPressed: () =>
+                                                            _onDeleteTransaction(
+                                                                t),
+                                                        icon: const Icon(
+                                                            Icons
+                                                                .delete_outline_rounded,
+                                                            size: 19,
+                                                            color: AppColors
+                                                                .danger),
+                                                        splashRadius: 18,
+                                                        tooltip:
+                                                            'Delete Transaction',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: StatusBadge(
-                                            label:
-                                                isInbound ? 'Receive' : 'Release',
-                                            tone: isInbound
-                                                ? BadgeTone.success
-                                                : BadgeTone.danger,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: Text(
-                                            t.createdByName ?? 'User',
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppTextStyles.body,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                            '${t.totalItems}',
-                                            textAlign: TextAlign.right,
-                                            style: AppTextStyles.bodyMedium,
-                                          ),
-                                        ),
-                                        // Admin-only actions: edit + delete.
-                                        if (_isAdmin)
-                                          SizedBox(
-                                            width: 84,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.end,
-                                              children: [
-                                                IconButton(
-                                                  onPressed: isCancelled
-                                                      ? null
-                                                      : () =>
-                                                          _onEditTransaction(t),
-                                                  icon: const Icon(
-                                                      Icons.edit_outlined,
-                                                      size: 19,
-                                                      color: AppColors.primary),
-                                                  splashRadius: 18,
-                                                  tooltip: isCancelled
-                                                      ? 'Cancelled transactions cannot be edited'
-                                                      : 'Edit Transaction',
-                                                ),
-                                                IconButton(
-                                                  onPressed: () =>
-                                                      _onDeleteTransaction(t),
-                                                  icon: const Icon(
-                                                      Icons
-                                                          .delete_outline_rounded,
-                                                      size: 19,
-                                                      color: AppColors.danger),
-                                                  splashRadius: 18,
-                                                  tooltip: 'Delete Transaction',
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).expand((row) sync* {
-                                yield row;
-                                yield const Divider(
-                                    height: 0.6, thickness: 0.6);
-                              }),
-                            ],
-                          ),
+                                      );
+                                    }).expand((row) sync* {
+                                      yield row;
+                                      yield const Divider(
+                                          height: 0.6, thickness: 0.6);
+                                    }),
+                                  ],
+                                ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+        SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: const Border(top: BorderSide(color: AppColors.border)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: _onReceive,
+                      icon: const Icon(Icons.add_circle_outline_rounded,
+                          color: Colors.white, size: 20),
+                      label: Text(
+                        'Receive',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: Colors.white, fontSize: 15),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: _onRelease,
+                      icon: const Icon(Icons.remove_circle_outline_rounded,
+                          color: Colors.white, size: 20),
+                      label: Text(
+                        'Release',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: Colors.white, fontSize: 15),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.danger,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

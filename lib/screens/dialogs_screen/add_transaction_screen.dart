@@ -31,13 +31,29 @@ class _TxnItemRow {
 /// use the separate cancel flow to reverse stock.
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? existingTransaction;
+  final String initialType;
+  final Product? initialProduct;
 
-  const AddTransactionScreen({super.key, this.existingTransaction});
+  const AddTransactionScreen({
+    super.key,
+    this.existingTransaction,
+    this.initialType = 'Receive',
+    this.initialProduct,
+  });
 
   /// Pushes the screen in create mode. Returns `true` if a transaction was created.
-  static Future<bool?> show(BuildContext context) {
+  static Future<bool?> show(
+    BuildContext context, {
+    String initialType = 'Receive',
+    Product? initialProduct,
+  }) {
     return Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(
+          initialType: initialType,
+          initialProduct: initialProduct,
+        ),
+      ),
     );
   }
 
@@ -59,14 +75,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _billNoController = TextEditingController();
   final _remarksController = TextEditingController();
-  final _issuedToController = TextEditingController();
 
-  String _type = 'inbound'; // 'inbound' or 'outbound'
-  String _status = 'Completed'; // 'Completed' or 'Pending'
+  late String _type;
   List<Product> _allProducts = [];
   bool _loadingProducts = true;
   bool _submitting = false;
-
+  
   final List<_TxnItemRow> _itemRows = [];
 
   bool get _isEditMode => widget.existingTransaction != null;
@@ -74,6 +88,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
+    final existing = widget.existingTransaction;
+    if (existing != null) {
+      _billNoController.text = existing.billNo;
+      if (existing.remarks != null && existing.remarks != 'N/A') {
+        _remarksController.text = existing.remarks!;
+      }
+    }
+    _type = _isEditMode
+        ? widget.existingTransaction!.type
+        : widget.initialType;
     _loadProducts();
   }
 
@@ -81,7 +105,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _billNoController.dispose();
     _remarksController.dispose();
-    _issuedToController.dispose();
     for (var item in _itemRows) {
       item.dispose();
     }
@@ -112,7 +135,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               _itemRows.add(row);
             }
           } else {
-            _addItemRow();
+            final row = _TxnItemRow();
+            if (widget.initialProduct != null) {
+              for (final p in products) {
+                if (p.id == widget.initialProduct!.id) {
+                  row.selectedProduct = p;
+                  break;
+                }
+              }
+              row.selectedProduct ??= widget.initialProduct;
+            }
+            _itemRows.add(row);
           }
         }
       });
@@ -162,7 +195,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       }
 
       if (!_isEditMode &&
-          _type == 'outbound' &&
+          _type.toLowerCase() == 'release' &&
           qty > row.selectedProduct!.quantity) {
         NotificationBanner.show(
           context,
@@ -185,10 +218,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           transactionId: widget.existingTransaction!.id!,
           billNo: _billNoController.text.trim(),
           type: _type,
-          status: _status,
           items: validItems,
           remarks: _remarksController.text.trim(),
-          issuedTo: _issuedToController.text.trim(),
         );
 
         if (!mounted) return;
@@ -205,10 +236,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         final createdTxn = await TransactionService.instance.create(
           billNo: _billNoController.text.trim(),
           type: _type,
-          status: _status,
           items: validItems,
           remarks: _remarksController.text.trim(),
-          issuedTo: _issuedToController.text.trim(),
           userId: currentUserId,
         );
 
@@ -236,6 +265,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isReceive = _type.toLowerCase() == 'receive';
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -250,33 +280,42 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: isReceive ? AppColors.successSoft : AppColors.dangerSoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                    _isEditMode ? Icons.edit_rounded : Icons.swap_horiz_rounded,
-                    color: AppColors.primary,
+                    _isEditMode
+                        ? Icons.edit_rounded
+                        : (isReceive
+                            ? Icons.arrow_downward_rounded
+                            : Icons.arrow_upward_rounded),
+                    color: isReceive ? AppColors.success : AppColors.danger,
                     size: 22),
               ),
             ),
             const SizedBox(width: 14),
             Padding(
               padding: const EdgeInsets.only(top: 20),
-              child: Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_isEditMode ? 'Edit Transaction' : 'Add New Transaction',
-                        style: AppTextStyles.h3),
-                    const SizedBox(height: 2),
-                    Text(
-                        _isEditMode
-                            ? 'Update this transaction\'s details.'
-                            : 'Record stock movement (Inbound or Outbound).',
-                        style: AppTextStyles.caption),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                      _isEditMode
+                          ? 'Edit Transaction'
+                          : (isReceive
+                              ? 'Receive Stock'
+                              : 'Release Stock'),
+                      style: AppTextStyles.h3),
+                  const SizedBox(height: 2),
+                  Text(
+                      _isEditMode
+                          ? 'Update this transaction\'s details.'
+                          : (isReceive
+                              ? 'Record incoming stock movement.'
+                              : 'Record outgoing stock movement.'),
+                      style: AppTextStyles.caption),
+                ],
               ),
             ),
           ],
@@ -293,7 +332,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Bill No & Type Row
+              // Bill No
               Row(
                 children: [
                   Expanded(
@@ -315,7 +354,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 18),
 
-              // Status & Remarks Row
+              // Remarks Row
               Row(
                 children: [
                   Expanded(
@@ -331,32 +370,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                 ],
               ),
-              if (_isEditMode &&
-                  widget.existingTransaction!.status.toLowerCase() !=
-                      'cancelled') ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.warningSoft,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline_rounded,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Setting status to Cancelled will reverse this '
-                          'transaction\'s stock impact when you save.',
-                          style: AppTextStyles.caption,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
               const SizedBox(height: 24),
 
               // Item List Header

@@ -144,6 +144,38 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     }).toList();
   }
 
+  List<Map<String, dynamic>> get _computedTransactionRows {
+    final sorted = List<Transaction>.from(_transactions)
+      ..sort((a, b) => (a.createdAt ?? DateTime(1970))
+          .compareTo(b.createdAt ?? DateTime(1970)));
+
+    int running = 0;
+    final Map<dynamic, int> balanceMap = {};
+    for (int i = 0; i < sorted.length; i++) {
+      final t = sorted[i];
+      final isReceive = t.type.toLowerCase() == 'receive' ||
+          t.type.toLowerCase() == 'inbound' ||
+          t.type.toLowerCase() == 'purchase';
+      if (isReceive) {
+        running += t.totalItems;
+      } else {
+        running -= t.totalItems;
+      }
+      final key = t.id ?? t.billNo;
+      balanceMap[key] = running;
+    }
+
+    final filtered = _filteredTransactions;
+    return filtered.map((t) {
+      final key = t.id ?? t.billNo;
+      final bal = balanceMap[key] ?? 0;
+      return {
+        'transaction': t,
+        'balance': bal,
+      };
+    }).toList();
+  }
+
   // ---------------------------------------------------------------------------
   // PDF Generation & Download
   // ---------------------------------------------------------------------------
@@ -165,25 +197,21 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         'Type',
         'Total Items',
         'Created By',
-        'Status',
-        'Date'
       ];
-      dataRows = _filteredTransactions.map((t) {
+      dataRows = _computedTransactionRows.map((row) {
+        final t = row['transaction'] as Transaction;
         final dStr =
             t.createdAt != null ? _dateFormat.format(t.createdAt!) : 'N/A';
         return [
-          t.billNo,
+          '${t.billNo}\n$dStr',
           t.type.toUpperCase(),
           '${t.totalItems}',
           t.createdByName ?? 'User',
-          t.status,
-          dStr,
         ];
       }).toList();
     } else {
       headers = [
         'Product Name',
-        'Category',
         'Quantity',
         'Unit',
         'Stock Status'
@@ -290,16 +318,16 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
 
     if (widget.reportType == ReportType.transactionMovement) {
       csvBuffer.writeln(
-          '"Bill No.","Type","Total Items","Created By","Status","Date"');
-      for (final t in _filteredTransactions) {
+          '"Bill No.","Type","Total Items","Created By","Date"');
+      for (final row in _computedTransactionRows) {
+        final t = row['transaction'] as Transaction;
         final dStr =
             t.createdAt != null ? _dateFormat.format(t.createdAt!) : 'N/A';
         csvBuffer.writeln(
-            '"${t.billNo}","${t.type}","${t.totalItems}","${t.createdByName ?? ''}","${t.status}","$dStr"');
+            '"${t.billNo}","${t.type}","${t.totalItems}","${t.createdByName ?? ''}","$dStr"');
       }
     } else {
-      csvBuffer.writeln(
-          '"Product Name","Quantity","Unit"');
+      csvBuffer.writeln('"Product Name","Quantity","Unit","Stock Status"');
       for (final p in _filteredProducts) {
         final statusStr = p.quantity <= 0
             ? 'Out of stock'
@@ -501,8 +529,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     }
 
     if (widget.reportType == ReportType.transactionMovement) {
-      final txns = _filteredTransactions;
-      if (txns.isEmpty) {
+      final rows = _computedTransactionRows;
+      if (rows.isEmpty) {
         return Center(
           child: Text('No transactions found within selected date range.',
               style:
@@ -515,12 +543,10 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         child: Table(
           border: TableBorder.all(color: AppColors.border, width: 1),
           columnWidths: const {
-            0: FlexColumnWidth(2),
-            1: FlexColumnWidth(1.5),
+            0: FlexColumnWidth(2.5),
+            1: FlexColumnWidth(1.3),
             2: FlexColumnWidth(1),
-            3: FlexColumnWidth(2),
-            4: FlexColumnWidth(1.5),
-            5: FlexColumnWidth(1.8),
+            3: FlexColumnWidth(1.8),
           },
           children: [
             const TableRow(
@@ -530,29 +556,44 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
                 _TableCellHeader('TYPE'),
                 _TableCellHeader('ITEMS'),
                 _TableCellHeader('CREATED BY'),
-                _TableCellHeader('STATUS'),
-                _TableCellHeader('DATE'),
               ],
             ),
-            ...txns.map((t) {
+            ...rows.map((row) {
+              final t = row['transaction'] as Transaction;
+              final isInbound = t.type.toLowerCase() == 'receive' ||
+                  t.type.toLowerCase() == 'inbound' ||
+                  t.type.toLowerCase() == 'purchase';
               final dStr = t.createdAt != null
                   ? _dateFormat.format(t.createdAt!)
                   : 'N/A';
               return TableRow(
                 children: [
-                  _TableCellText(t.billNo, isBold: true),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(t.billNo,
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(dStr,
+                            style: AppTextStyles.caption
+                                .copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
                   _TableCellWidget(
                     StatusBadge(
-                      label: t.type.toUpperCase(),
-                      tone: t.type == 'inbound'
+                      label: isInbound ? 'RECEIVE' : 'RELEASE',
+                      tone: isInbound
                           ? BadgeTone.success
                           : BadgeTone.danger,
                     ),
                   ),
                   _TableCellText('${t.totalItems}'),
                   _TableCellText(t.createdByName ?? 'User'),
-                  _TableCellText(t.status),
-                  _TableCellText(dStr),
                 ],
               );
             }),
@@ -575,7 +616,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
           border: TableBorder.all(color: AppColors.border, width: 1),
           columnWidths: const {
             0: FlexColumnWidth(3),
-            1: FlexColumnWidth(2),
+            1: FlexColumnWidth(1.5),
             2: FlexColumnWidth(1.5),
             3: FlexColumnWidth(2),
           },
@@ -584,8 +625,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
               decoration: BoxDecoration(color: AppColors.neutralSoft),
               children: [
                 _TableCellHeader('PRODUCT NAME'),
-                _TableCellHeader('CATEGORY'),
                 _TableCellHeader('IN STOCK'),
+                _TableCellHeader('UNIT'),
                 _TableCellHeader('STOCK STATUS'),
               ],
             ),
@@ -600,7 +641,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
               return TableRow(
                 children: [
                   _TableCellText(p.productName, isBold: true),
-                  _TableCellText('${p.quantity} ${p.unit}'),
+                  _TableCellText('${p.quantity}'),
+                  _TableCellText(p.unit),
                   _TableCellWidget(StatusBadge(label: statusStr, tone: tone)),
                 ],
               );

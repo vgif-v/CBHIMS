@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/transaction.dart';
+import '../../services/offline_queue_service.dart';
 import '../../services/product_service.dart';
 import '../../services/transaction_service.dart';
 import '../../theme/app_theme.dart';
@@ -46,11 +47,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         recentTxnsFuture,
       ]);
 
+      final recentTxns = results[2] as List<Transaction>;
+      final pendingLocal = OfflineQueueService.instance.getAll().map((p) {
+        return Transaction(
+          billNo: p.billNo,
+          type: p.type,
+          totalItems: p.items.fold<int>(0, (sum, item) => sum + item.quantity),
+          remarks: p.remarks,
+          createdBy: p.userId,
+          createdAt: p.queuedAt,
+          items: p.items,
+          localId: p.localId,
+          isPendingSync: true,
+        );
+      }).toList();
+
+      final combined = [...pendingLocal, ...recentTxns];
+      final displayTxns = combined.length > 5 ? combined.sublist(0, 5) : combined;
+
       if (!mounted) return;
       setState(() {
         _totalProducts = results[0] as int;
         _lowStockCount = results[1] as int;
-        _recentTransactions = results[2] as List<Transaction>;
+        _recentTransactions = displayTxns;
         _loading = false;
       });
     } catch (e) {
@@ -67,8 +86,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadDashboardData();
   }
 
-  Future<void> _onAddTransaction() async {
-    final added = await AddTransactionScreen.show(context);
+  Future<void> _onReceive() async {
+    final added = await AddTransactionScreen.show(context, initialType: 'Receive');
+    if (added == true) {
+      _loadDashboardData();
+    }
+  }
+
+  Future<void> _onRelease() async {
+    final added = await AddTransactionScreen.show(context, initialType: 'Release');
     if (added == true) {
       _loadDashboardData();
     }
@@ -195,11 +221,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           _QuickActionButton(
-            icon: Icons.sync_alt_rounded,
-            label: 'Add Transaction (Inbound/Outbound)',
+            icon: Icons.arrow_downward_rounded,
+            label: 'Receive Stock',
             iconColor: AppColors.success,
             iconBg: AppColors.successSoft,
-            onTap: _onAddTransaction,
+            onTap: _onReceive,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _QuickActionButton(
+            icon: Icons.arrow_upward_rounded,
+            label: 'Release Stock',
+            iconColor: AppColors.danger,
+            iconBg: const Color(0x1AEF4444),
+            onTap: _onRelease,
           ),
         ],
       ),
@@ -337,7 +371,9 @@ class _TransactionsTable extends StatelessWidget {
         const Divider(height: 0.6, thickness: 0.6),
         // Data rows.
         ...transactions.expand((t) {
-          final inbound = t.type == 'inbound';
+          final inbound = t.type.toLowerCase() == 'receive' ||
+              t.type.toLowerCase() == 'inbound' ||
+              t.type.toLowerCase() == 'purchase';
           final dateStr = t.createdAt != null
               ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
               : 'N/A';

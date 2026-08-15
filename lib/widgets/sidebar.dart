@@ -154,46 +154,37 @@ class Sidebar extends StatelessWidget {
                   ],
                 ),
               ),
-              // Logout menu
-              Builder(
-                builder: (ctx) => GestureDetector(
-                  onTap: () async {
-                    final box = ctx.findRenderObject() as RenderBox;
-                    final offset = box.localToGlobal(Offset.zero);
-                    final shouldLogout = await showMenu<bool>(
-                      context: ctx,
-                      position: RelativeRect.fromLTRB(
-                        offset.dx + box.size.width + 4,
-                        offset.dy - 8,
-                        0,
-                        0,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      items: [
-                        PopupMenuItem<bool>(
-                          value: true,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.logout_rounded,
-                                  size: 18, color: AppColors.danger),
-                              const SizedBox(width: 8),
-                              Text('Logout',
-                                  style: AppTextStyles.body
-                                      .copyWith(color: AppColors.danger)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                    if (shouldLogout == true) {
-                      await AuthService.instance.signOut();
-                    }
-                  },
-                  child: const Icon(Icons.more_horiz_rounded,
-                      size: 18, color: AppColors.textMuted),
+              PopupMenuButton<bool>(
+                onSelected: (val) async {
+                  if (val == true) {
+                    await AuthService.instance.signOut();
+                  }
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                offset: const Offset(0, -56),
+                icon: const Icon(Icons.more_vert_rounded,
+                    size: 18, color: AppColors.textMuted),
+                splashRadius: 16,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                itemBuilder: (_) => [
+                  PopupMenuItem<bool>(
+                    value: true,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.logout_rounded,
+                            size: 18, color: AppColors.danger),
+                        const SizedBox(width: 10),
+                        Text('Logout',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.danger)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

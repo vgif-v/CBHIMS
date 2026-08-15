@@ -29,8 +29,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _quantityController;
   late final TextEditingController _remarksController;
-
-  int? _selectedCategoryId;
   late String _selectedUnit;
   bool _loading = false;
 
@@ -73,7 +71,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
     try {
       await ProductService.instance.update(widget.product.id!, {
         'product_name': _nameController.text.trim(),
-        'category_id': _selectedCategoryId,
         'quantity': int.tryParse(_quantityController.text.trim()) ?? 0,
         'unit': _selectedUnit,
         'remarks': _remarksController.text.trim(),

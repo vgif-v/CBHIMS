@@ -60,17 +60,44 @@ class ProductService {
 
   /// Insert a new product into Supabase.
   Future<Product> add(Product product) async {
-    final response = await _client
-        .from('products')
-        .insert(product.toInsertJson())
-        .select()
-        .single();
-    return Product.fromJson(response);
+    final insertData = product.toInsertJson();
+    try {
+      final response = await _client
+          .from('products')
+          .insert(insertData)
+          .select()
+          .single();
+      return Product.fromJson(response);
+    } catch (e) {
+      debugPrint('[ProductService] add failed with payload $insertData: $e');
+      if (insertData.containsKey('category_id')) {
+        insertData.remove('category_id');
+        final response = await _client
+            .from('products')
+            .insert(insertData)
+            .select()
+            .single();
+        return Product.fromJson(response);
+      }
+      rethrow;
+    }
   }
 
   /// Update an existing product.
   Future<void> update(int id, Map<String, dynamic> data) async {
-    await _client.from('products').update(data).eq('id', id);
+    final cleanData = Map<String, dynamic>.from(data);
+    cleanData.removeWhere((key, value) => value == null && key == 'category_id');
+    try {
+      await _client.from('products').update(cleanData).eq('id', id);
+    } catch (e) {
+      debugPrint('[ProductService] update failed with payload $cleanData: $e');
+      if (cleanData.containsKey('category_id')) {
+        cleanData.remove('category_id');
+        await _client.from('products').update(cleanData).eq('id', id);
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// Soft-delete a product (set is_active = false).

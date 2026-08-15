@@ -46,7 +46,7 @@ class Product {
   Map<String, dynamic> toInsertJson() {
     return {
       'product_name': productName,
-      'category_id': categoryId,
+      if (categoryId != null) 'category_id': categoryId,
       'quantity': quantity,
       'unit': unit,
       'is_active': isActive,

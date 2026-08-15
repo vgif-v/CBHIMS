@@ -31,7 +31,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '0');
-  final _newCategoryController = TextEditingController();
   final _remarksController = TextEditingController();
 
   String _selectedUnit = 'pcs';
@@ -54,7 +53,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
-    _newCategoryController.dispose();
     _remarksController.dispose();
     super.dispose();
   }
@@ -62,7 +60,6 @@ class _AddProductDialogState extends State<AddProductDialog> {
   void _resetForm() {
     _nameController.clear();
     _quantityController.text = '0';
-    _newCategoryController.clear();
     _remarksController.clear();
     setState(() {
       _selectedUnit = 'pcs';

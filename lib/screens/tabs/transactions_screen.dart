@@ -234,6 +234,36 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  String _getCreatedByName(Transaction t) {
+    if (t.createdByName != null &&
+        t.createdByName!.trim().isNotEmpty &&
+        t.createdByName!.trim().toLowerCase() != 'user' &&
+        t.createdByName!.trim().toLowerCase() != 'system user') {
+      return t.createdByName!.trim();
+    }
+    if (t.createdBy != null &&
+        t.createdBy!.trim().isNotEmpty &&
+        !t.createdBy!.contains('-')) {
+      return t.createdBy!.trim();
+    }
+    final authDisplayName = AuthService.instance.displayName.trim();
+    if (authDisplayName.isNotEmpty && authDisplayName.toLowerCase() != 'user') {
+      return authDisplayName;
+    }
+    final authEmail = AuthService.instance.email.trim();
+    if (authEmail.isNotEmpty) {
+      final emailPrefix = authEmail.split('@').first;
+      if (emailPrefix.isNotEmpty && emailPrefix.toLowerCase() != 'user') {
+        return emailPrefix;
+      }
+    }
+    final authRole = AuthService.instance.userRole?.trim();
+    if (authRole != null && authRole.isNotEmpty) {
+      return authRole;
+    }
+    return 'Admin';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -398,7 +428,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                               Expanded(
                                                 flex: 3,
                                                 child: Text(
-                                                  t.createdByName ?? 'User',
+                                                  _getCreatedByName(t),
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: AppTextStyles.body,

@@ -85,25 +85,108 @@ class TransactionService {
   /// Map of productId -> productName cache.
   final Map<int, String> _productNameCache = {};
 
+  /// Whether we've already done the bulk preload of all user names.
+  bool _userNamesPreloaded = false;
+
+  /// Preload all user names from the users table in one query.
+  Future<void> _preloadUserNames() async {
+    if (_userNamesPreloaded) return;
+    try {
+      final rows =
+          await _client.from('users').select('id, full_name, email, role');
+      for (final row in (rows as List)) {
+        final map = row as Map;
+        final id = map['id']?.toString();
+        String? name = map['full_name']?.toString().trim();
+        if (name == null || name.isEmpty || name.toLowerCase() == 'user') {
+          final role = map['role']?.toString().trim();
+          final email = map['email']?.toString().trim();
+          if (role != null && role.isNotEmpty) {
+            name = role[0].toUpperCase() + role.substring(1);
+          } else if (email != null && email.isNotEmpty) {
+            name = email.split('@').first;
+          }
+        }
+        if (id != null && name != null && name.isNotEmpty) {
+          _userNameCache[id] = name;
+        }
+      }
+      _userNamesPreloaded = true;
+    } catch (e) {
+      debugPrint('[TransactionService] Could not preload user names: $e');
+    }
+  }
+
   Future<String?> _getUserName(String? userId) async {
-    if (userId == null || userId.isEmpty) return null;
+    if (userId == null || userId.isEmpty) {
+      final currentAuthUser = _client.auth.currentUser;
+      final metaName =
+          currentAuthUser?.userMetadata?['full_name']?.toString().trim();
+      if (metaName != null &&
+          metaName.isNotEmpty &&
+          metaName.toLowerCase() != 'user') {
+        return metaName;
+      }
+      final email = currentAuthUser?.email?.split('@').first;
+      if (email != null && email.isNotEmpty && email.toLowerCase() != 'user') {
+        return email;
+      }
+      return 'Admin';
+    }
+
     if (_userNameCache.containsKey(userId)) return _userNameCache[userId];
 
+    if (!userId.contains('-')) {
+      _userNameCache[userId] = userId;
+      return userId;
+    }
+
+    // Try individual lookup if bulk preload missed this user.
     try {
       final res = await _client
           .from('users')
-          .select('full_name')
+          .select('full_name, email, role')
           .eq('id', userId)
           .maybeSingle();
-      if (res != null && res['full_name'] != null) {
-        final name = res['full_name'] as String;
-        _userNameCache[userId] = name;
-        return name;
+      if (res != null) {
+        String? name = res['full_name']?.toString().trim();
+        if (name == null || name.isEmpty || name.toLowerCase() == 'user') {
+          final role = res['role']?.toString().trim();
+          final email = res['email']?.toString().trim();
+          if (role != null && role.isNotEmpty) {
+            name = role[0].toUpperCase() + role.substring(1);
+          } else if (email != null && email.isNotEmpty) {
+            name = email.split('@').first;
+          }
+        }
+        if (name != null && name.isNotEmpty) {
+          _userNameCache[userId] = name;
+          return name;
+        }
       }
     } catch (e) {
       debugPrint('[TransactionService] Could not resolve user name: $e');
     }
-    return null;
+
+    // Fall back to the current auth user's display name or email if IDs match.
+    final currentAuthUser = _client.auth.currentUser;
+    if (currentAuthUser != null && currentAuthUser.id == userId) {
+      final metaName =
+          currentAuthUser.userMetadata?['full_name']?.toString().trim();
+      if (metaName != null &&
+          metaName.isNotEmpty &&
+          metaName.toLowerCase() != 'user') {
+        _userNameCache[userId] = metaName;
+        return metaName;
+      }
+      final email = currentAuthUser.email?.split('@').first;
+      if (email != null && email.isNotEmpty) {
+        _userNameCache[userId] = email;
+        return email;
+      }
+    }
+
+    return 'Admin';
   }
 
   /// Preload all active product names into cache.
@@ -139,6 +222,7 @@ class TransactionService {
       }
     }
 
+    await _preloadUserNames();
     Map<int, List<Map<String, dynamic>>> itemsByTxnId = {};
     if (ids.isNotEmpty) {
       try {
@@ -635,16 +719,8 @@ class TransactionService {
     );
   }
 
-  /// Update an existing transaction's core fields and replace its items.
-  ///
-  /// If [status] is 'Cancelled' (case-insensitive) and the transaction was
-  /// NOT already cancelled, this automatically reverses the stock impact
-  /// of the transaction's ORIGINAL items (before this edit's item changes)
-  /// exactly once. If the transaction was already cancelled, status stays
-  /// cancelled and stock is not touched again (prevents double-reversal).
-  ///
-  /// Editing a non-cancelled transaction's items/other fields (without
-  /// changing status to Cancelled) does NOT touch product stock.
+  /// Update an existing transaction's core fields, replace its items,
+  /// and automatically adjust product stock to match the updated items and type.
   Future<Transaction> update({
     required int transactionId,
     required String billNo,
@@ -653,9 +729,42 @@ class TransactionService {
     String? remarks,
     String? issuedTo,
   }) async {
-    // Fetch current state first so we know whether this is a fresh
-    // transition into Cancelled, and so we reverse the CORRECT (original)
-    // items/quantities rather than whatever the edit form now contains.
+    // 1. Fetch original transaction before changes to calculate stock delta.
+    Transaction? oldTxn;
+    try {
+      oldTxn = await getById(transactionId);
+    } catch (e) {
+      debugPrint(
+          '[TransactionService] Could not fetch original txn for stock adjustment: $e');
+    }
+
+    final productService = ProductService.instance;
+
+    // 2. Revert the original transaction's stock impact.
+    if (oldTxn != null) {
+      final oldIsReceive = oldTxn.type.toLowerCase() == 'receive' ||
+          oldTxn.type.toLowerCase() == 'inbound' ||
+          oldTxn.type.toLowerCase() == 'purchase';
+      for (final oldItem in oldTxn.items) {
+        if (oldItem.productId != null) {
+          final revertDelta =
+              oldIsReceive ? -oldItem.quantity : oldItem.quantity;
+          await productService.updateQuantity(oldItem.productId!, revertDelta);
+        }
+      }
+    }
+
+    // 3. Apply the updated transaction's stock impact.
+    final newIsReceive = type.toLowerCase() == 'receive' ||
+        type.toLowerCase() == 'inbound' ||
+        type.toLowerCase() == 'purchase';
+    for (final newItem in items) {
+      if (newItem.productId != null) {
+        final applyDelta =
+            newIsReceive ? newItem.quantity : -newItem.quantity;
+        await productService.updateQuantity(newItem.productId!, applyDelta);
+      }
+    }
 
     final totalItems = items.fold<int>(0, (sum, item) => sum + item.quantity);
 
@@ -675,27 +784,13 @@ class TransactionService {
     }).eq('id', transactionId);
 
     // Replace items: delete existing, insert new.
-    //
-    // IMPORTANT: we verify the delete actually removed rows before
-    // inserting. Postgres does not error on a DELETE that matches 0 rows
-    // (e.g. because RLS silently filtered them out for this user's role)
-    // — it just succeeds having done nothing. Without this check, a
-    // blocked delete followed by a successful insert produces duplicated
-    // items: the old rows stay, and the new rows are added on top. This
-    // is exactly what happened when transaction_items' DELETE policy was
-    // more restrictive than its INSERT policy for non-admin roles.
     try {
-      // Find out how many items currently exist for this transaction, so
-      // we know what we EXPECT the delete to remove.
       final existingItems = await _client
           .from('transaction_items')
           .select('id')
           .eq('transaction_id', transactionId);
       final expectedDeleteCount = (existingItems as List).length;
 
-      // .select() after .delete() returns the rows that were actually
-      // deleted, so we can confirm the delete really happened rather than
-      // silently matching 0 rows.
       final deletedRows = await _client
           .from('transaction_items')
           .delete()
@@ -704,10 +799,6 @@ class TransactionService {
       final actualDeleteCount = (deletedRows as List).length;
 
       if (expectedDeleteCount > 0 && actualDeleteCount < expectedDeleteCount) {
-        // The delete didn't remove everything it should have — almost
-        // certainly an RLS policy silently blocking rows for this user's
-        // role. Refuse to insert on top of stale data; surface a clear
-        // error instead of corrupting the transaction with duplicates.
         throw StateError(
             'Could not update items: expected to remove $expectedDeleteCount '
             'existing item(s) but only $actualDeleteCount were removed. '
@@ -729,13 +820,24 @@ class TransactionService {
     return getById(transactionId);
   }
 
-  /// Permanently delete a transaction and its items.
-  ///
-  /// Does NOT reverse stock automatically — if the transaction was still
-  /// active (not cancelled), its stock impact remains applied to products
-  /// unless the caller cancels it first. Callers should generally require
-  /// confirmation before calling this, since it cannot be undone.
+  /// Permanently delete a transaction and its items, and reverse its stock impact.
   Future<void> deleteTransaction(int transactionId) async {
+    try {
+      final oldTxn = await getById(transactionId);
+      final oldIsReceive = oldTxn.type.toLowerCase() == 'receive' ||
+          oldTxn.type.toLowerCase() == 'inbound' ||
+          oldTxn.type.toLowerCase() == 'purchase';
+      final productService = ProductService.instance;
+      for (final item in oldTxn.items) {
+        if (item.productId != null) {
+          final revertDelta = oldIsReceive ? -item.quantity : item.quantity;
+          await productService.updateQuantity(item.productId!, revertDelta);
+        }
+      }
+    } catch (e) {
+      debugPrint('[TransactionService] Failed to revert stock on delete: $e');
+    }
+
     try {
       await _client
           .from('transaction_items')

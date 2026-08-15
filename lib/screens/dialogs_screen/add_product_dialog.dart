@@ -160,21 +160,85 @@ class _AddProductDialogState extends State<AddProductDialog> {
                           Expanded(
                             child: _buildField(
                               label: 'Quantity',
-                              child: TextFormField(
-                                controller: _quantityController,
-                                style: AppTextStyles.body
-                                    .copyWith(color: AppColors.textPrimary),
-                                decoration: _inputDecoration('0'),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _quantityController,
+                                      style: AppTextStyles.body
+                                          .copyWith(color: AppColors.textPrimary),
+                                      decoration: _inputDecoration('0'),
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly
+                                      ],
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            final current = int.tryParse(
+                                                    _quantityController.text) ??
+                                                0;
+                                            _quantityController.text =
+                                                (current + 1).toString();
+                                          },
+                                          borderRadius: const BorderRadius.vertical(
+                                              top: Radius.circular(8)),
+                                          child: const SizedBox(
+                                            width: 28,
+                                            height: 22,
+                                            child: Icon(
+                                                Icons.keyboard_arrow_up_rounded,
+                                                size: 18,
+                                                color: AppColors.textSecondary),
+                                          ),
+                                        ),
+                                        const Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            color: AppColors.border),
+                                        InkWell(
+                                          onTap: () {
+                                            final current = int.tryParse(
+                                                    _quantityController.text) ??
+                                                0;
+                                            if (current > 0) {
+                                              _quantityController.text =
+                                                  (current - 1).toString();
+                                            }
+                                          },
+                                          borderRadius: const BorderRadius.vertical(
+                                              bottom: Radius.circular(8)),
+                                          child: const SizedBox(
+                                            width: 28,
+                                            height: 22,
+                                            child: Icon(
+                                                Icons.keyboard_arrow_down_rounded,
+                                                size: 18,
+                                                color: AppColors.textSecondary),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                                validator: (v) {
-                                  if (v == null || v.trim().isEmpty) {
-                                    return 'Required';
-                                  }
-                                  return null;
-                                },
                               ),
                             ),
                           ),

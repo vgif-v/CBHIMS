@@ -526,18 +526,82 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        SizedBox(
-                          width: 90,
-                          child: TextFormField(
-                            controller: row.quantityController,
-                            style: AppTextStyles.body
-                                .copyWith(color: AppColors.textPrimary),
-                            decoration: _inputDecoration('Qty'),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 76,
+                              child: TextFormField(
+                                controller: row.quantityController,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.body.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600),
+                                decoration: _inputDecoration('Qty'),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                border: Border.all(color: AppColors.border),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      final current = int.tryParse(
+                                              row.quantityController.text) ??
+                                          0;
+                                      row.quantityController.text =
+                                          (current + 1).toString();
+                                    },
+                                    borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(8)),
+                                    child: const SizedBox(
+                                      width: 28,
+                                      height: 22,
+                                      child: Icon(Icons.keyboard_arrow_up_rounded,
+                                          size: 18,
+                                          color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                  const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: AppColors.border),
+                                  InkWell(
+                                    onTap: () {
+                                      final current = int.tryParse(
+                                              row.quantityController.text) ??
+                                          1;
+                                      if (current > 1) {
+                                        row.quantityController.text =
+                                            (current - 1).toString();
+                                      }
+                                    },
+                                    borderRadius: const BorderRadius.vertical(
+                                        bottom: Radius.circular(8)),
+                                    child: const SizedBox(
+                                      width: 28,
+                                      height: 22,
+                                      child: Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          size: 18,
+                                          color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                         if (_itemRows.length > 1) ...[
                           const SizedBox(width: 4),

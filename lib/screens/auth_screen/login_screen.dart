@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../services/auth_service.dart';
 import 'signup_screen.dart';
 
 /// A premium login screen with the CBHIMS branding, glassmorphism card,
@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+  with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -57,7 +57,8 @@ class _LoginScreenState extends State<LoginScreen>
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // AuthGate handles navigation on successful auth state change.
+      // AuthGate handles navigation — including routing to
+      // PendingApprovalScreen if the role is still null.
     } on AuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,20 +66,17 @@ class _LoginScreenState extends State<LoginScreen>
           content: Text(e.message),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              const Text('An unexpected error occurred. Please try again.'),
+          content: const Text('An unexpected error occurred. Please try again.'),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     } finally {

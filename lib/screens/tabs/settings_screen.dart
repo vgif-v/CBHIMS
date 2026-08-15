@@ -220,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showEditRoleDialog(AppUser member) async {
-    String selectedRole = member.role;
+    String selectedRole = member.role ?? 'Staff';
     final roles = ['Admin', 'Manager', 'Staff'];
 
     final updatedRole = await showDialog<String>(
@@ -574,7 +574,7 @@ class _TeamMemberRow extends StatelessWidget {
   });
 
   BadgeTone get _tone {
-    switch (member.role.toLowerCase()) {
+    switch (member.role?.toLowerCase()) {
       case 'admin':
         return BadgeTone.info;
       case 'manager':
@@ -614,7 +614,7 @@ class _TeamMemberRow extends StatelessWidget {
               ],
             ),
           ),
-          StatusBadge(label: member.role, tone: _tone),
+          StatusBadge(label: member.role?? 'None', tone: _tone),
           const SizedBox(width: 12),
           IconButton(
             onPressed: onEditRole,

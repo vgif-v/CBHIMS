@@ -2,14 +2,14 @@ class AppUser {
   final String id; // UUID from auth.users
   final String fullName;
   final String email;
-  final String role; // 'Admin', 'Manager', 'Staff'
+  final String? role; // 'Admin', 'Manager', 'Staff'
   final DateTime? createdAt;
 
   const AppUser({
     required this.id,
     required this.fullName,
     required this.email,
-    this.role = 'Staff',
+    this.role,
     this.createdAt,
   });
 
@@ -18,7 +18,7 @@ class AppUser {
       id: json['id'] as String? ?? '',
       fullName: json['full_name'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? 'Staff',
+      role: json['role'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
           : null,

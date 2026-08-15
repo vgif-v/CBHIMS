@@ -168,6 +168,8 @@ class AuthService extends ChangeNotifier {
       } catch (e) {
         debugPrint('[AuthService] Failed to insert into users table: $e');
       }
+
+      await signOut(); // force sign-out until admin approves the account
     }
 
     return response;

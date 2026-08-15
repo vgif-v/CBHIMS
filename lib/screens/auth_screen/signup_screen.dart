@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../services/auth_service.dart';
 
 /// A premium sign-up screen that visually matches the LoginScreen.
 class SignupScreen extends StatefulWidget {
@@ -67,7 +67,7 @@ class _SignupScreenState extends State<SignupScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
-              const Text('Account created successfully! You can now sign in.'),
+              const Text('Account created! An admin must approve your access before you can sign in.'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape:

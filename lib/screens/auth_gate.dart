@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'auth_screen/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'login_screen.dart';
+import 'auth_screen/pending_approval_screen.dart';
 import 'main_layout_screen.dart';
 import '../services/auth_service.dart';
 
-/// Listens to the Supabase auth state and routes to either
-/// [LoginScreen] or [MainLayoutScreen] accordingly.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -24,10 +23,8 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _checkExistingSession() async {
-    // Check if there's already a persisted session
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
-      // Preload user role
       await AuthService.instance.fetchUserRole();
       if (!mounted) return;
       setState(() {
@@ -43,6 +40,13 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
+  Widget _resolveHome() {
+    if (AuthService.instance.isPending) {
+      return const PendingApprovalScreen();
+    }
+    return const MainLayoutScreen();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_initializing) {
@@ -54,28 +58,32 @@ class _AuthGateState extends State<AuthGate> {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // Use the initial check result if the stream hasn't emitted yet
         if (!snapshot.hasData) {
-          return _hasSession
-              ? const MainLayoutScreen()
-              : const LoginScreen();
+          return _hasSession ? _resolveHome() : const LoginScreen();
         }
 
         final event = snapshot.data!.event;
         final session = snapshot.data!.session;
 
-        // Only navigate to login on explicit sign-out, not on token refresh
         if (event == AuthChangeEvent.signedOut) {
           return const LoginScreen();
         }
 
         if (session != null) {
-          return const MainLayoutScreen();
+          return FutureBuilder<String?>(
+            future: AuthService.instance.fetchUserRole(),
+            builder: (context, roleSnapshot) {
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return _resolveHome();
+            },
+          );
         }
 
-        return _hasSession
-            ? const MainLayoutScreen()
-            : const LoginScreen();
+        return _hasSession ? _resolveHome() : const LoginScreen();
       },
     );
   }

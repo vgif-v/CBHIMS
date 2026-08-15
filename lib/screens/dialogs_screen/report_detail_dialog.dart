@@ -15,6 +15,7 @@ import '../../widgets/status_badge.dart';
 
 enum ReportType {
   inventoryValuation,
+  specificItems,
   lowStockSummary,
   transactionMovement,
 }
@@ -61,12 +62,21 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
   bool _loading = true;
   String? _error;
 
+  final TextEditingController _itemSearchController = TextEditingController();
+  final List<String> _searchKeywords = [];
+
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
 
   @override
   void initState() {
     super.initState();
     _loadReportData();
+  }
+
+  @override
+  void dispose() {
+    _itemSearchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadReportData() async {
@@ -124,10 +134,52 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     }
   }
 
-  // Filter products or transactions by selected date range / status
+  void _addKeyword([String? text]) {
+    final query = (text ?? _itemSearchController.text).trim();
+    if (query.isEmpty) return;
+    if (!_searchKeywords.any((k) => k.toLowerCase() == query.toLowerCase())) {
+      setState(() {
+        _searchKeywords.add(query);
+        _itemSearchController.clear();
+      });
+    }
+  }
+
+  void _removeKeyword(String kw) {
+    setState(() {
+      _searchKeywords.remove(kw);
+    });
+  }
+
+  void _clearAllKeywords() {
+    setState(() {
+      _searchKeywords.clear();
+      _itemSearchController.clear();
+    });
+  }
+
+  // Filter products or transactions by selected date range / status / search criteria
   List<Product> get _filteredProducts {
     if (widget.reportType == ReportType.lowStockSummary) {
       return _products.where((p) => p.quantity <= 10).toList();
+    }
+    if (widget.reportType == ReportType.specificItems) {
+      final currentQuery = _itemSearchController.text.trim().toLowerCase();
+      if (_searchKeywords.isEmpty && currentQuery.isEmpty) {
+        return [];
+      }
+      return _products.where((p) {
+        final name = p.productName.toLowerCase();
+        if (currentQuery.isNotEmpty && name.contains(currentQuery)) {
+          return true;
+        }
+        for (final kw in _searchKeywords) {
+          if (name.contains(kw.toLowerCase())) {
+            return true;
+          }
+        }
+        return false;
+      }).toList();
     }
     return _products;
   }
@@ -186,6 +238,11 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         '${_dateFormat.format(_startDate)} – ${_dateFormat.format(_endDate)}';
     final generatedAtStr =
         DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+
+    final subtitleFilters = widget.reportType == ReportType.specificItems &&
+            _searchKeywords.isNotEmpty
+        ? 'Filtered Items: ${_searchKeywords.join(", ")}'
+        : 'Date Range: $dateRangeStr';
 
     // Build headers and rows depending on report type
     final List<String> headers;
@@ -277,7 +334,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
                 style: const pw.TextStyle(
                     fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 4),
-            pw.Text('Date Range: $dateRangeStr',
+            pw.Text(subtitleFilters,
                 style:
                     const pw.TextStyle(fontSize: 11, color: PdfColors.grey800)),
             pw.SizedBox(height: 16),
@@ -312,8 +369,13 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
 
     // Title & Date Header
     csvBuffer.writeln('"Celis Brothers Hardware - ${widget.reportTitle}"');
-    csvBuffer.writeln(
-        '"Date Range: ${_dateFormat.format(_startDate)} to ${_dateFormat.format(_endDate)}"');
+    if (widget.reportType == ReportType.specificItems &&
+        _searchKeywords.isNotEmpty) {
+      csvBuffer.writeln('"Filtered Items: ${_searchKeywords.join(", ")}"');
+    } else {
+      csvBuffer.writeln(
+          '"Date Range: ${_dateFormat.format(_startDate)} to ${_dateFormat.format(_endDate)}"');
+    }
     csvBuffer.writeln();
 
     if (widget.reportType == ReportType.transactionMovement) {
@@ -371,8 +433,13 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
           children: [
             _buildBrandedHeader(),
             const Divider(height: 1, color: AppColors.border),
-            _buildDateRangeSelector(),
-            const Divider(height: 1, color: AppColors.border),
+            if (widget.reportType != ReportType.specificItems) ...[
+              _buildDateRangeSelector(),
+              const Divider(height: 1, color: AppColors.border),
+            ],
+            if (widget.reportType == ReportType.specificItems) ...[
+              _buildSpecificItemFilter(),
+            ],
             Expanded(child: _buildDataPreview()),
             const Divider(height: 1, color: AppColors.border),
             _buildActions(),
@@ -482,6 +549,128 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     );
   }
 
+  Widget _buildSpecificItemFilter() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(28, 14, 28, 14),
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: TextField(
+                    controller: _itemSearchController,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (val) => _addKeyword(val),
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText:
+                          'Search product name or brand (e.g. Mabuhay, Cement, Steel)...',
+                      hintStyle: AppTextStyles.body
+                          .copyWith(color: AppColors.textMuted, fontSize: 13),
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          size: 20, color: AppColors.primary),
+                      suffixIcon: _itemSearchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _itemSearchController.clear();
+                                setState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: () => _addKeyword(),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add to Report'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_searchKeywords.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Active Item Filters (${_searchKeywords.length}):',
+                  style: AppTextStyles.caption
+                      .copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _searchKeywords.map((kw) {
+                      return Chip(
+                        label: Text(kw,
+                            style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary)),
+                        backgroundColor: AppColors.primarySoft,
+                        side: BorderSide.none,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        visualDensity: VisualDensity.compact,
+                        deleteIcon: const Icon(Icons.close_rounded,
+                            size: 14, color: AppColors.primary),
+                        onDeleted: () => _removeKeyword(kw),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _clearAllKeywords,
+                  child: Text('Clear All',
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.danger)),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _dateButton({required String label, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
@@ -569,7 +758,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
               return TableRow(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -579,8 +769,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
                                 .copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
                         Text(dStr,
-                            style: AppTextStyles.caption
-                                .copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                            style: AppTextStyles.caption.copyWith(
+                                fontSize: 11, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -603,6 +793,47 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     } else {
       final products = _filteredProducts;
       if (products.isEmpty) {
+        if (widget.reportType == ReportType.specificItems) {
+          final query = _itemSearchController.text.trim();
+          final hasActiveQuery = query.isNotEmpty || _searchKeywords.isNotEmpty;
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.search_rounded,
+                        color: AppColors.primary, size: 28),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    hasActiveQuery
+                        ? 'No products match "$query"'
+                        : 'Search & Add Specific Items',
+                    style: AppTextStyles.h3,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    hasActiveQuery
+                        ? 'Try searching for a different keyword or check product spelling.'
+                        : 'Type an item name or brand above (e.g. "Mabuhay") and click "Add to Report" to include its items.',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.body
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         return Center(
           child: Text('No products match this report criteria.',
               style:

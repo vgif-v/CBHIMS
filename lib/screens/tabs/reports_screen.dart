@@ -21,9 +21,15 @@ class ReportTemplateItem {
 const List<ReportTemplateItem> reportTemplates = [
   ReportTemplateItem(
     title: 'Inventory Valuation Report',
-    description: 'Current stock summary by category and product status.',
+    description: 'Current stock summary across all active inventory items.',
     icon: '📦',
     type: ReportType.inventoryValuation,
+  ),
+  ReportTemplateItem(
+    title: 'Specific Items Report',
+    description: 'Custom report filtered by specific searched items, brands, or keywords.',
+    icon: '🔍',
+    type: ReportType.specificItems,
   ),
   ReportTemplateItem(
     title: 'Low Stock Summary',

@@ -74,7 +74,7 @@ class Transaction {
     return Transaction(
       id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
       billNo: json['bill_no']?.toString() ?? '',
-      type: json['type']?.toString() ?? 'Receive', // default to 'Receive' if not provided
+      type: json['type']?.toString() ?? 'Receive',
       totalItems: parsedTotalItems,
       remarks: json['remarks']?.toString(),
       createdBy: json['created_by']?.toString(),

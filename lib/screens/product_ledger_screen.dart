@@ -141,7 +141,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
 
       if (!mounted) return;
       setState(() {
-        _entries = computed;
+        _entries = computed.reversed.toList();
         _loading = false;
       });
     } catch (e) {

@@ -1,4 +1,4 @@
-    import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/transaction.dart';
 import '../models/transaction_item.dart';
@@ -8,7 +8,6 @@ import '../models/pending_transaction.dart';
 import 'offline_queue_service.dart';
 
 List<String>? _billNoCache;
-
 
 bool _looksLikeConnectivityError(Object e) {
   final s = e.toString().toLowerCase();
@@ -28,21 +27,21 @@ bool _looksLikeConnectivityError(Object e) {
 /// creating a transaction with a brand-new bill number).
 Future<List<String>> getAllBillNumbers() async {
   if (_billNoCache != null) return _billNoCache!;
-    try {
-      final rows =
-          await Supabase.instance.client.from('transactions').select('bill_no');
-      final seen = <String>{};
-      for (final row in (rows as List)) {
-        final billNo = (row as Map)['bill_no']?.toString().trim();
-        if (billNo != null && billNo.isNotEmpty) seen.add(billNo);
-      }
-      _billNoCache = seen.toList()..sort();
-      return _billNoCache!;
-    } catch (e) {
-      debugPrint('[TransactionService] Failed to load bill numbers: $e');
-      return _billNoCache ?? [];
+  try {
+    final rows =
+        await Supabase.instance.client.from('transactions').select('bill_no');
+    final seen = <String>{};
+    for (final row in (rows as List)) {
+      final billNo = (row as Map)['bill_no']?.toString().trim();
+      if (billNo != null && billNo.isNotEmpty) seen.add(billNo);
     }
+    _billNoCache = seen.toList()..sort();
+    return _billNoCache!;
+  } catch (e) {
+    debugPrint('[TransactionService] Failed to load bill numbers: $e');
+    return _billNoCache ?? [];
   }
+}
 
 /// Call after creating a transaction so the next autocomplete includes
 /// the bill number that was just used.
@@ -170,7 +169,8 @@ class TransactionService {
           }
         }
       } catch (e) {
-        debugPrint('[TransactionService] Bulk load transaction_items failed: $e');
+        debugPrint(
+            '[TransactionService] Bulk load transaction_items failed: $e');
       }
     }
 
@@ -427,7 +427,11 @@ class TransactionService {
     final String finalRemarks =
         (remarks != null && remarks.trim().isNotEmpty) ? remarks.trim() : 'N/A';
 
-    String currentBillNo = billNo;
+    // bill_no is intentionally NOT unique (repeat customers reuse their own
+    // bill numbers on later, unrelated visits) — so it must never be used
+    // to look up "the row I just inserted." Only txnResponse['id'] from the
+    // insert's own .select() can safely identify that row.
+    final String currentBillNo = billNo;
     Map<String, dynamic>? txnResponse;
 
     final statusLower = status.toLowerCase();
@@ -440,7 +444,6 @@ class TransactionService {
         : type;
     final typeLower = type.toLowerCase();
 
-    // Helper function to build candidate payload
     Map<String, dynamic> buildPayload({
       String? statusVal,
       required String typeVal,
@@ -453,12 +456,8 @@ class TransactionService {
         'total_items': totalItems,
         'remarks': finalRemarks,
       };
-      if (statusVal != null) {
-        map['status'] = statusVal;
-      }
-      if (includeIssuedTo) {
-        map['issued_to'] = finalIssuedTo;
-      }
+      if (statusVal != null) map['status'] = statusVal;
+      if (includeIssuedTo) map['issued_to'] = finalIssuedTo;
       if (includeCreatedBy && userId != null && userId.isNotEmpty) {
         map['created_by'] = userId;
       }
@@ -467,41 +466,27 @@ class TransactionService {
 
     final payloadsToTry = [
       buildPayload(
-          statusVal: statusCapital,
-          typeVal: typeTitle,
-          includeCreatedBy: true),
+          statusVal: statusCapital, typeVal: typeTitle, includeCreatedBy: true),
       buildPayload(
           statusVal: statusCapital,
           typeVal: typeTitle,
           includeCreatedBy: false),
       buildPayload(
-          statusVal: statusLower,
-          typeVal: typeLower,
-          includeCreatedBy: true),
+          statusVal: statusLower, typeVal: typeLower, includeCreatedBy: true),
       buildPayload(
-          statusVal: statusLower,
-          typeVal: typeLower,
-          includeCreatedBy: false),
+          statusVal: statusLower, typeVal: typeLower, includeCreatedBy: false),
       buildPayload(
-          statusVal: statusCapital,
-          typeVal: typeLower,
-          includeCreatedBy: true),
+          statusVal: statusCapital, typeVal: typeLower, includeCreatedBy: true),
       buildPayload(
           statusVal: statusCapital,
           typeVal: typeLower,
           includeCreatedBy: false),
       buildPayload(
-          statusVal: statusLower,
-          typeVal: typeTitle,
-          includeCreatedBy: true),
+          statusVal: statusLower, typeVal: typeTitle, includeCreatedBy: true),
       buildPayload(
-          statusVal: null,
-          typeVal: typeTitle,
-          includeCreatedBy: false),
+          statusVal: null, typeVal: typeTitle, includeCreatedBy: false),
       buildPayload(
-          statusVal: null,
-          typeVal: typeLower,
-          includeCreatedBy: false),
+          statusVal: null, typeVal: typeLower, includeCreatedBy: false),
     ];
 
     for (int i = 0; i < payloadsToTry.length; i++) {
@@ -512,36 +497,31 @@ class TransactionService {
             .insert(payload)
             .select()
             .maybeSingle();
+
         if (res != null) {
           txnResponse = Map<String, dynamic>.from(res);
           break;
-        } else {
-          final checkRow = await _client
-              .from('transactions')
-              .select()
-              .eq('bill_no', currentBillNo)
-              .maybeSingle();
-          if (checkRow != null) {
-            txnResponse = Map<String, dynamic>.from(checkRow);
-            break;
-          }
         }
+
+        // .select() returned null after a successful insert — this means
+        // the insert went through but the current role can't SELECT it
+        // back (an RLS gap), not that it failed. We deliberately do NOT
+        // try to recover the row by bill_no anymore, since bill_no is no
+        // longer unique and could match an unrelated older transaction.
+        // Log it and move on — txnId will be filled in as null below, and
+        // the function still returns a usable in-memory Transaction.
+        debugPrint('[TransactionService] Insert attempt ${i + 1} succeeded but '
+            '.select() returned null (likely an RLS SELECT gap for this '
+            'role). Not attempting bill_no lookup since bill_no is not '
+            'unique. Consider fixing the SELECT policy on transactions.');
+        break;
       } catch (e) {
         debugPrint('[TransactionService] Insert attempt ${i + 1} failed: $e');
-        final errStr = e.toString().toLowerCase();
-
-        if (errStr.contains('duplicate key') || errStr.contains('unique')) {
-          currentBillNo = 'TXN-${DateTime.now().millisecondsSinceEpoch}';
-          for (var p in payloadsToTry) {
-            p['bill_no'] = currentBillNo;
-          }
-          i--;
-          continue;
-        }
-
         if (i == payloadsToTry.length - 1) {
           rethrow;
         }
+        // No more duplicate-key retry branch — bill_no collisions are
+        // expected and valid now, not errors to work around.
       }
     }
 
@@ -551,85 +531,82 @@ class TransactionService {
           ? txnResponse['id'] as int
           : int.tryParse(txnResponse['id'].toString());
     }
+    // NOTE: the old "if (txnId == null) { look up by bill_no }" fallback
+    // has been removed entirely. With bill_no no longer unique, that
+    // lookup could silently attach items to a different, older transaction
+    // that happens to share the same bill number — a correctness bug, not
+    // just a missing feature. If txnId is null here, it means the insert's
+    // .select() didn't return the row (RLS gap, see above) — items simply
+    // can't be safely inserted in that case, and the fix is on the RLS
+    // policy, not a client-side workaround.
 
-    if (txnId == null) {
-      try {
-        final row = await _client
-            .from('transactions')
-            .select('id')
-            .eq('bill_no', currentBillNo)
-            .maybeSingle();
-        if (row != null && row['id'] != null) {
-          txnId = row['id'] is int
-              ? row['id'] as int
-              : int.tryParse(row['id'].toString());
-        }
-      } catch (e) {
-        debugPrint('[TransactionService] Failed to lookup txnId by bill_no: $e');
-      }
-    }
-
-    // Insert transaction items with fallbacks
+    bool itemsSaved = false;
     if (txnId != null && items.isNotEmpty) {
-      bool itemsSaved = false;
       try {
-        final itemRows = items.map((item) => item.toInsertJson(txnId!)).toList();
+        final itemRows =
+            items.map((item) => item.toInsertJson(txnId!)).toList();
         await _client.from('transaction_items').insert(itemRows);
         itemsSaved = true;
       } catch (e) {
-        debugPrint('[TransactionService] Standard transaction_items insert failed: $e. Trying fallback without unit.');
+        debugPrint(
+            '[TransactionService] Standard transaction_items insert failed: $e. Trying fallback without unit.');
       }
 
       if (!itemsSaved) {
         try {
-          final fallbackRows = items.map((item) => {
-            'transaction_id': txnId,
-            'product_id': item.productId,
-            'product_name': item.productName,
-            'quantity': item.quantity,
-          }).toList();
+          final fallbackRows = items
+              .map((item) => {
+                    'transaction_id': txnId,
+                    'product_id': item.productId,
+                    'product_name': item.productName,
+                    'quantity': item.quantity,
+                  })
+              .toList();
           await _client.from('transaction_items').insert(fallbackRows);
           itemsSaved = true;
         } catch (e2) {
-          debugPrint('[TransactionService] Fallback 1 failed: $e2. Trying minimal items insert.');
+          debugPrint(
+              '[TransactionService] Fallback 1 failed: $e2. Trying minimal items insert.');
         }
       }
 
       if (!itemsSaved) {
         try {
-          final minimalRows = items.map((item) => {
-            'transaction_id': txnId,
-            'product_id': item.productId,
-            'quantity': item.quantity,
-          }).toList();
+          final minimalRows = items
+              .map((item) => {
+                    'transaction_id': txnId,
+                    'product_id': item.productId,
+                    'quantity': item.quantity,
+                  })
+              .toList();
           await _client.from('transaction_items').insert(minimalRows);
           itemsSaved = true;
         } catch (e3) {
-          debugPrint('[TransactionService] Minimal transaction_items insert failed: $e3');
+          debugPrint(
+              '[TransactionService] Minimal transaction_items insert failed: $e3');
           rethrow;
         }
       }
+    } else if (txnId == null && items.isNotEmpty) {
+      // We have items to save but no confirmed transaction id — surface
+      // this loudly rather than silently dropping the items.
+      debugPrint('[TransactionService] WARNING: transaction was created but '
+          'txnId is unknown (RLS SELECT gap) — transaction_items were NOT '
+          'inserted. Fix the SELECT policy on the transactions table.');
     }
 
-    // Update product quantities. This is the authoritative, race-safe
-    // stock guard (adjust_product_quantity in Postgres) — the pre-check
-    // in create() is just a fast-path UX nicety. If this throws
-    // InsufficientStockException here (e.g. a race with another
-    // concurrent outbound transaction slipped past the pre-check), we
-    // must NOT swallow it — a transaction record would otherwise exist
-    // claiming stock was moved when it wasn't.
     final productService = ProductService.instance;
     for (final item in items) {
       if (item.productId != null) {
-        final quantityChange =
-            (type.toLowerCase() == 'receive' || type.toLowerCase() == 'inbound' || type.toLowerCase() == 'purchase')
-                ? item.quantity
-                : -item.quantity;
+        final quantityChange = (type.toLowerCase() == 'receive' ||
+                type.toLowerCase() == 'inbound' ||
+                type.toLowerCase() == 'purchase')
+            ? item.quantity
+            : -item.quantity;
         await productService.updateQuantity(item.productId!, quantityChange);
       }
     }
 
-    // Resolve user name for the created transaction
     String? createdByName;
     if (userId != null && userId.isNotEmpty) {
       createdByName = await _getUserName(userId);
@@ -656,29 +633,6 @@ class TransactionService {
       createdAt: baseTxn.createdAt ?? DateTime.now(),
       items: items,
     );
-  }
-
-  /// Reverses the stock impact of a transaction's items.
-  /// Original: inbound/purchase increased stock, outbound/sale decreased it.
-  /// Reversal applies the opposite change for each item.
-  Future<void> _reverseStockForItems(
-      String txnType, List<TransactionItem> items) async {
-    final productService = ProductService.instance;
-    final isInbound =
-        txnType.toLowerCase() == 'receive' || txnType.toLowerCase() == 'purchase';
-
-    for (final item in items) {
-      if (item.productId != null) {
-        final reversalChange = isInbound ? -item.quantity : item.quantity;
-        try {
-          await productService.updateQuantity(item.productId!, reversalChange);
-        } catch (e) {
-          debugPrint(
-              '[TransactionService] Failed to reverse product quantity for item ${item.productId}: $e');
-          rethrow;
-        }
-      }
-    }
   }
 
   /// Update an existing transaction's core fields and replace its items.
@@ -767,26 +721,10 @@ class TransactionService {
         await _client.from('transaction_items').insert(itemRows);
       }
     } catch (e) {
-      debugPrint('[TransactionService] Failed to replace transaction_items: $e');
+      debugPrint(
+          '[TransactionService] Failed to replace transaction_items: $e');
       rethrow;
     }
-
-    return getById(transactionId);
-  }
-
-  /// Cancel a transaction and reverse its stock impact.
-  /// Safe to call only on transactions that are not already cancelled —
-  /// throws a [StateError] if the transaction is already cancelled, to
-  /// prevent double-reversal of stock.
-  Future<Transaction> cancelTransaction(int transactionId) async {
-    final txn = await getById(transactionId);
-
-    await _reverseStockForItems(txn.type, txn.items);
-
-    await _client
-        .from('transactions')
-        .update({'status': 'cancelled'})
-        .eq('id', transactionId);
 
     return getById(transactionId);
   }

@@ -36,7 +36,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.initState();
     _loadTransactions();
 
-    // Auto-sync and refresh whenever we come back online.
     _syncSubscription = ConnectivityService.instance.onOnlineStatusChanged
         .listen((isOnline) async {
       if (isOnline) {
@@ -61,8 +60,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     try {
       final txns = await TransactionService.instance.getAll();
 
-      // Merge in anything still waiting in the offline queue — these
-      // haven't reached the server yet so getAll() won't include them.
       final pendingLocal = OfflineQueueService.instance.getAll().map((p) {
         return Transaction(
           billNo: p.billNo,
@@ -300,14 +297,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 )
                               : Column(
                                   children: [
-                                    // Header row.
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           vertical: AppSpacing.sm),
                                       child: Row(
                                         children: [
                                           Expanded(
-                                            flex: 5,
+                                            flex: 4,
                                             child: Text('BILL NO.',
                                                 style: AppTextStyles.label),
                                           ),
@@ -333,7 +329,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ),
                                     ),
                                     const Divider(height: 0.6, thickness: 0.6),
-                                    // Data rows.
                                     ...List.generate(_transactions.length,
                                         (index) {
                                       final t = _transactions[index];
@@ -354,7 +349,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                 CrossAxisAlignment.center,
                                             children: [
                                               Expanded(
-                                                flex: 5,
+                                                flex: 4,
                                                 child: Column(
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
@@ -390,7 +385,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                 ),
                                               ),
                                               Expanded(
-                                                flex: 3,
+                                                flex: 2,
                                                 child: StatusBadge(
                                                   label: isInbound
                                                       ? 'Receive'
@@ -418,7 +413,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                                       AppTextStyles.bodyMedium,
                                                 ),
                                               ),
-                                              // Admin-only actions: edit + delete.
                                               if (_isAdmin)
                                                 SizedBox(
                                                   width: 84,

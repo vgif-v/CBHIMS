@@ -266,11 +266,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final compact = screenWidth < 600;
+    final horizontalPadding = compact ? 16.0 : 32.0;
+
     return Column(
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+            padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -325,174 +329,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     ),
                                   ),
                                 )
-                              : Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: AppSpacing.sm),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 4,
-                                            child: Text('BILL NO.',
-                                                style: AppTextStyles.label),
-                                          ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text('TYPE',
-                                                style: AppTextStyles.label),
-                                          ),
-                                          Expanded(
-                                            flex: 3,
-                                            child: Text('CREATED BY',
-                                                style: AppTextStyles.label),
-                                          ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text('TOTAL ITEMS',
-                                                textAlign: TextAlign.right,
-                                                style: AppTextStyles.label),
-                                          ),
-                                          if (_isAdmin)
-                                            const SizedBox(width: 84),
-                                        ],
-                                      ),
-                                    ),
-                                    const Divider(height: 0.6, thickness: 0.6),
-                                    ...List.generate(_transactions.length,
-                                        (index) {
-                                      final t = _transactions[index];
-                                      final isInbound =
-                                          t.type.toLowerCase() == 'receive' ||
-                                              t.type.toLowerCase() == 'inbound';
-                                      final dateStr = t.createdAt != null
-                                          ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
-                                          : 'N/A';
-
-                                      return InkWell(
-                                        onTap: () => _showTransactionDetails(t),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: AppSpacing.sm),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Expanded(
-                                                flex: 4,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      t.billNo,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: AppTextStyles.mono
-                                                          .copyWith(
-                                                              color: AppColors
-                                                                  .textPrimary,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600),
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      dateStr,
-                                                      style: AppTextStyles
-                                                          .caption
-                                                          .copyWith(
-                                                        color: AppColors
-                                                            .textSecondary,
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: StatusBadge(
-                                                  label: isInbound
-                                                      ? 'Receive'
-                                                      : 'Release',
-                                                  tone: isInbound
-                                                      ? BadgeTone.success
-                                                      : BadgeTone.danger,
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 3,
-                                                child: Text(
-                                                  _getCreatedByName(t),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: AppTextStyles.body,
-                                                ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
-                                                child: Text(
-                                                  '${t.totalItems}',
-                                                  textAlign: TextAlign.right,
-                                                  style:
-                                                      AppTextStyles.bodyMedium,
-                                                ),
-                                              ),
-                                              if (_isAdmin)
-                                                SizedBox(
-                                                  width: 84,
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.end,
-                                                    children: [
-                                                      IconButton(
-                                                        onPressed: () =>
-                                                            _onEditTransaction(
-                                                                t),
-                                                        icon: const Icon(
-                                                            Icons.edit_outlined,
-                                                            size: 18,
-                                                            color: AppColors
-                                                                .primary),
-                                                        splashRadius: 18,
-                                                        tooltip:
-                                                            'Edit Transaction',
-                                                      ),
-                                                      IconButton(
-                                                        onPressed: () =>
-                                                            _onDeleteTransaction(
-                                                                t),
-                                                        icon: const Icon(
-                                                            Icons
-                                                                .delete_outline_rounded,
-                                                            size: 19,
-                                                            color: AppColors
-                                                                .danger),
-                                                        splashRadius: 18,
-                                                        tooltip:
-                                                            'Delete Transaction',
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }).expand((row) sync* {
-                                      yield row;
-                                      yield const Divider(
-                                          height: 0.6, thickness: 0.6);
-                                    }),
-                                  ],
-                                ),
+                              : compact
+                                  ? _buildMobileTransactionList()
+                                  : _buildDesktopTransactionTable(),
                 ),
               ],
             ),
@@ -565,6 +404,260 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildMobileTransactionList() {
+    return Column(
+      children: _transactions.map((t) {
+        final isInbound = t.type.toLowerCase() == 'receive' ||
+            t.type.toLowerCase() == 'inbound';
+        final dateStr = t.createdAt != null
+            ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+            : 'N/A';
+
+        return Column(
+          children: [
+            InkWell(
+              onTap: () => _showTransactionDetails(t),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            t.billNo,
+                            style: AppTextStyles.mono.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        StatusBadge(
+                          label: isInbound ? 'Receive' : 'Release',
+                          tone: isInbound ? BadgeTone.success : BadgeTone.danger,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded,
+                            size: 13, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          dateStr,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.person_outline_rounded,
+                            size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _getCreatedByName(t),
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.neutralSoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${t.totalItems} total items',
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (_isAdmin)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: () => _onEditTransaction(t),
+                                icon: const Icon(Icons.edit_outlined,
+                                    size: 18, color: AppColors.primary),
+                                splashRadius: 18,
+                                tooltip: 'Edit Transaction',
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(6),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                onPressed: () => _onDeleteTransaction(t),
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    size: 18, color: AppColors.danger),
+                                splashRadius: 18,
+                                tooltip: 'Delete Transaction',
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(6),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDesktopTransactionTable() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Text('BILL NO.', style: AppTextStyles.label),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('TYPE', style: AppTextStyles.label),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text('CREATED BY', style: AppTextStyles.label),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('TOTAL ITEMS',
+                    textAlign: TextAlign.right, style: AppTextStyles.label),
+              ),
+              if (_isAdmin) const SizedBox(width: 84),
+            ],
+          ),
+        ),
+        const Divider(height: 0.6, thickness: 0.6),
+        ..._transactions.expand((t) {
+          final isInbound = t.type.toLowerCase() == 'receive' ||
+              t.type.toLowerCase() == 'inbound';
+          final dateStr = t.createdAt != null
+              ? '${t.createdAt!.year}-${t.createdAt!.month.toString().padLeft(2, '0')}-${t.createdAt!.day.toString().padLeft(2, '0')}'
+              : 'N/A';
+
+          return [
+            InkWell(
+              onTap: () => _showTransactionDetails(t),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            t.billNo,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.mono.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dateStr,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: StatusBadge(
+                        label: isInbound ? 'Receive' : 'Release',
+                        tone: isInbound ? BadgeTone.success : BadgeTone.danger,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        _getCreatedByName(t),
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '${t.totalItems}',
+                        textAlign: TextAlign.right,
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ),
+                    if (_isAdmin)
+                      SizedBox(
+                        width: 84,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              onPressed: () => _onEditTransaction(t),
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: AppColors.primary),
+                              splashRadius: 18,
+                              tooltip: 'Edit Transaction',
+                            ),
+                            IconButton(
+                              onPressed: () => _onDeleteTransaction(t),
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 19, color: AppColors.danger),
+                              splashRadius: 18,
+                              tooltip: 'Delete Transaction',
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 0.6, thickness: 0.6),
+          ];
+        }),
       ],
     );
   }

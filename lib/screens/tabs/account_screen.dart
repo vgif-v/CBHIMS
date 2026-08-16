@@ -146,8 +146,12 @@ class _AccountScreenState extends State<AccountScreen> {
         .map((w) => w[0].toUpperCase())
         .join();
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final compact = screenWidth < 600;
+    final horizontalPadding = compact ? 16.0 : 32.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -159,51 +163,96 @@ class _AccountScreenState extends State<AccountScreen> {
 
           // User Header Card
           SectionCard(
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    initials.isNotEmpty ? initials : 'U',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
+            child: compact
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Text(name, style: AppTextStyles.h2),
-                          const SizedBox(width: 12),
-                          if (_role != null)
-                            StatusBadge(label: _role!, tone: _roleBadgeTone)
-                          else
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: AppColors.primary,
+                            child: Text(
+                              initials.isNotEmpty ? initials : 'U',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(name, style: AppTextStyles.h3),
+                                const SizedBox(height: 2),
+                                if (_role != null)
+                                  StatusBadge(label: _role!, tone: _roleBadgeTone),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(email, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                      const SizedBox(height: 10),
+                      Text(email, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SecondaryButton(
+                          label: 'Logout',
+                          icon: Icons.logout_rounded,
+                          onPressed: () => AuthService.instance.signOut(),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: AppColors.primary,
+                        child: Text(
+                          initials.isNotEmpty ? initials : 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(name, style: AppTextStyles.h2),
+                                const SizedBox(width: 12),
+                                if (_role != null)
+                                  StatusBadge(label: _role!, tone: _roleBadgeTone)
+                                else
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(email, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      ),
+                      SecondaryButton(
+                        label: 'Logout',
+                        icon: Icons.logout_rounded,
+                        onPressed: () => AuthService.instance.signOut(),
+                      ),
                     ],
                   ),
-                ),
-                SecondaryButton(
-                  label: 'Logout',
-                  icon: Icons.logout_rounded,
-                  onPressed: () => AuthService.instance.signOut(),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: AppSpacing.lg),
 

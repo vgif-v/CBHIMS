@@ -301,243 +301,348 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 800),
-            padding: const EdgeInsets.all(36),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row with Logo on Left and Title Center/Right
-                Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Image.asset('assets/images/clogo.png'),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+          final padding = compact ? 12.0 : 32.0;
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(padding),
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 800),
+                padding: EdgeInsets.all(compact ? 16 : 36),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Row
+                    if (compact) ...[
+                      Row(
                         children: [
-                          Text('Celis Brothers Hardware',
-                              style: AppTextStyles.h1.copyWith(fontSize: 24)),
-                          const SizedBox(height: 2),
-                          Text('Inventory Management System — Official Voucher',
-                              style:
-                                  AppTextStyles.caption.copyWith(fontSize: 13)),
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Image.asset('assets/images/clogo.png'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Celis Brothers Hardware',
+                                    style: AppTextStyles.h2.copyWith(fontSize: 17)),
+                                const SizedBox(height: 2),
+                                Text('Official Voucher',
+                                    style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(transaction.billNo,
+                              style: AppTextStyles.mono.copyWith(
+                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                          StatusBadge(
+                            label: isInbound ? '+ RECEIVE' : '- RELEASE',
+                            tone: isInbound ? BadgeTone.success : BadgeTone.danger,
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Image.asset('assets/images/clogo.png'),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Celis Brothers Hardware',
+                                    style: AppTextStyles.h1.copyWith(fontSize: 24)),
+                                const SizedBox(height: 2),
+                                Text('Inventory Management System — Official Voucher',
+                                    style: AppTextStyles.caption.copyWith(fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(transaction.billNo,
+                                  style: AppTextStyles.mono.copyWith(
+                                      fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(height: 4),
+                              StatusBadge(
+                                label: isInbound ? '+ RECEIVE' : '- RELEASE',
+                                tone: isInbound ? BadgeTone.success : BadgeTone.danger,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    const Divider(height: 1, color: AppColors.border),
+                    const SizedBox(height: 20),
+
+                    // Details Grid
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Date & Time', style: AppTextStyles.label),
+                              const SizedBox(height: 4),
+                              Text(dateStr, style: AppTextStyles.bodyMedium),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Created By', style: AppTextStyles.label),
+                              const SizedBox(height: 4),
+                              Text(creatorName, style: AppTextStyles.bodyMedium),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (transaction.remarks != null &&
+                        transaction.remarks!.isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text('Remarks / Notes', style: AppTextStyles.label),
+                      const SizedBox(height: 4),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(transaction.remarks!, style: AppTextStyles.body),
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+                    Text('Items Summary', style: AppTextStyles.h3),
+                    const SizedBox(height: 12),
+
+                    // Items Table / List
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        children: [
+                          if (!compact) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: const BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius:
+                                    BorderRadius.vertical(top: Radius.circular(9)),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                      width: 40,
+                                      child: Text('#', style: AppTextStyles.label)),
+                                  Expanded(
+                                      child: Text('PRODUCT NAME',
+                                          style: AppTextStyles.label)),
+                                  SizedBox(
+                                      width: 80,
+                                      child: Text('QTY',
+                                          textAlign: TextAlign.right,
+                                          style: AppTextStyles.label)),
+                                  SizedBox(
+                                      width: 80,
+                                      child: Text('BALANCE',
+                                          textAlign: TextAlign.right,
+                                          style: AppTextStyles.label)),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1, color: AppColors.border),
+                          ],
+                          if (_loadingItems)
+                            const Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            )
+                          else if (transaction.items.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Center(
+                                child: Text('No itemized details recorded.',
+                                    style: AppTextStyles.body),
+                              ),
+                            )
+                          else
+                            ...transaction.items.asMap().entries.map((entry) {
+                              final idx = entry.key + 1;
+                              final item = entry.value;
+
+                              if (compact) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 12),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                        bottom: BorderSide(color: AppColors.divider)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Product name in full — no truncation
+                                      Text(
+                                        '$idx. ${item.productName}',
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primarySoft,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'Qty: ${item.quantity}',
+                                              style: AppTextStyles.caption.copyWith(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            'Balance: ${(item.productId != null && _productBalances.containsKey(item.productId)) ? '${_productBalances[item.productId]}' : '-'}',
+                                            style: AppTextStyles.caption.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(color: AppColors.divider)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                        width: 40,
+                                        child: Text('$idx',
+                                            style: AppTextStyles.mono)),
+                                    Expanded(
+                                        child: Text(item.productName,
+                                            style: AppTextStyles.bodyMedium)),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        '${item.quantity}',
+                                        textAlign: TextAlign.right,
+                                        style: AppTextStyles.bodyLarge
+                                            .copyWith(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        (item.productId != null && _productBalances.containsKey(item.productId))
+                                            ? '${_productBalances[item.productId]}'
+                                            : '-',
+                                        textAlign: TextAlign.right,
+                                        style: AppTextStyles.bodyMedium,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                         ],
                       ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    const SizedBox(height: 20),
+
+                    // Footer Total
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(transaction.billNo,
-                            style: AppTextStyles.mono.copyWith(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 4),
-                        StatusBadge(
-                          label: isInbound ? '+ RECEIVE' : '- RELEASE',
-                          tone:
-                              isInbound ? BadgeTone.success : BadgeTone.danger,
+                        Flexible(
+                          child: Text('Official CBHIMS Stock Movement Record',
+                              style: AppTextStyles.caption,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Total: ${transaction.totalItems}',
+                          style:
+                              AppTextStyles.h3.copyWith(color: AppColors.primary, fontSize: compact ? 16 : 18),
                         ),
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                const Divider(height: 1, color: AppColors.border),
-                const SizedBox(height: 24),
-
-                // Details Grid
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Date & Time', style: AppTextStyles.label),
-                          const SizedBox(height: 4),
-                          Text(dateStr, style: AppTextStyles.bodyMedium),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Created By', style: AppTextStyles.label),
-                          const SizedBox(height: 4),
-                          Text(creatorName, style: AppTextStyles.bodyMedium),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                if (transaction.remarks != null &&
-                    transaction.remarks!.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Text('Remarks / Notes', style: AppTextStyles.label),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child:
-                        Text(transaction.remarks!, style: AppTextStyles.body),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-                Text('Items Summary', style: AppTextStyles.h3),
-                const SizedBox(height: 12),
-
-                // Items Table
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(9)),
-                        ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                                width: 40,
-                                child: Text('#', style: AppTextStyles.label)),
-                            Expanded(
-                                child: Text('PRODUCT NAME',
-                                    style: AppTextStyles.label)),
-                            SizedBox(
-                                width: 80,
-                                child: Text('QTY',
-                                    textAlign: TextAlign.right,
-                                    style: AppTextStyles.label)),
-                            SizedBox(
-                                width: 80,
-                                child: Text('BALANCE',
-                                    textAlign: TextAlign.right,
-                                    style: AppTextStyles.label)),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, color: AppColors.border),
-                      if (_loadingItems)
-                        const Padding(
-                          padding: EdgeInsets.all(24.0),
-                          child: Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        )
-                      else if (transaction.items.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Center(
-                            child: Text('No itemized details recorded.',
-                                style: AppTextStyles.body),
-                          ),
-                        )
-                      else
-                        ...transaction.items.asMap().entries.map((entry) {
-                          final idx = entry.key + 1;
-                          final item = entry.value;
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                  bottom: BorderSide(color: AppColors.divider)),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                    width: 40,
-                                    child: Text('$idx',
-                                        style: AppTextStyles.mono)),
-                                Expanded(
-                                    child: Text(item.productName,
-                                        style: AppTextStyles.bodyMedium)),
-                                SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    '${item.quantity}',
-                                    textAlign: TextAlign.right,
-                                    style: AppTextStyles.bodyLarge
-                                        .copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    (item.productId != null && _productBalances.containsKey(item.productId))
-                                        ? '${_productBalances[item.productId]}'
-                                        : '-',
-                                    textAlign: TextAlign.right,
-                                    style: AppTextStyles.bodyMedium,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Footer Total
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Official CBHIMS Stock Movement Record',
-                        style: AppTextStyles.caption),
-                    Text(
-                      'Total Items: ${transaction.totalItems}',
-                      style:
-                          AppTextStyles.h3.copyWith(color: AppColors.primary),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

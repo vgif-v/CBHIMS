@@ -43,11 +43,11 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: Container(
-                width: 400,
-                padding: const EdgeInsets.all(36),
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(24),

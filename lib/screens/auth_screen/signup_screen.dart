@@ -138,7 +138,7 @@ class _SignupScreenState extends State<SignupScreen>
                   position: _slideAnim,
                   child: Container(
                     width: isWide ? 440 : double.infinity,
-                    padding: const EdgeInsets.all(36),
+                    padding: EdgeInsets.all(isWide ? 36 : 24),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(24),

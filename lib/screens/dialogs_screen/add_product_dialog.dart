@@ -108,17 +108,20 @@ class _AddProductDialogState extends State<AddProductDialog> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final dialogWidth = width > 600 ? 520.0 : width * 0.92;
+    final compact = width < 600;
+    final dialogWidth = width > 600 ? 520.0 : width * 0.95;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 16)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 620),
+        constraints: BoxConstraints(maxHeight: compact ? MediaQuery.of(context).size.height * 0.88 : 620),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(compact ? 16 : 20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -130,11 +133,11 @@ class _AddProductDialogState extends State<AddProductDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(),
+            _buildHeader(compact),
             const Divider(height: 1, color: AppColors.border),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(28, 20, 28, 8),
+                padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 16, compact ? 16 : 28, 8),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -278,38 +281,38 @@ class _AddProductDialogState extends State<AddProductDialog> {
               ),
             ),
             const Divider(height: 1, color: AppColors.border),
-            _buildActions(),
+            _buildActions(compact),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool compact) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 22, 16, 16),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, compact ? 16 : 22, compact ? 12 : 16, compact ? 12 : 16),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: compact ? 34 : 40,
+            height: compact ? 34 : 40,
             decoration: BoxDecoration(
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.add_box_rounded,
-                color: AppColors.primary, size: 20),
+            child: Icon(Icons.add_box_rounded,
+                color: AppColors.primary, size: compact ? 18 : 20),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Add New Product', style: AppTextStyles.h3),
+                Text('Add New Product', style: AppTextStyles.h3.copyWith(fontSize: compact ? 16 : 18)),
                 const SizedBox(height: 2),
                 Text(
-                    'Fill in product details. Dialog stays open to add multiple items.',
-                    style: AppTextStyles.caption),
+                    'Fill in product details.',
+                    style: AppTextStyles.caption.copyWith(fontSize: compact ? 11 : 12)),
               ],
             ),
           ),
@@ -318,20 +321,22 @@ class _AddProductDialogState extends State<AddProductDialog> {
             icon: const Icon(Icons.close_rounded,
                 color: AppColors.textMuted, size: 20),
             splashRadius: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(bool compact) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 14, 28, 18),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 12, compact ? 16 : 28, compact ? 14 : 18),
       child: Row(
         children: [
           Expanded(
             child: SizedBox(
-              height: 46,
+              height: 44,
               child: OutlinedButton(
                 onPressed: _loading ? null : () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
@@ -347,7 +352,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
           const SizedBox(width: 12),
           Expanded(
             child: SizedBox(
-              height: 46,
+              height: 44,
               child: ElevatedButton(
                 onPressed: _loading ? null : _handleSubmit,
                 style: ElevatedButton.styleFrom(

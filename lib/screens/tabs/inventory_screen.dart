@@ -176,9 +176,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredProducts;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final compact = screenWidth < 600;
+    final horizontalPadding = compact ? 16.0 : 32.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -254,74 +257,89 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilterBar() {
+    final compact = MediaQuery.of(context).size.width < 600;
+
+    final searchField = Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded,
+              size: 18, color: AppColors.textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration.collapsed(
+                hintText: 'Search product name...',
+                hintStyle: AppTextStyles.body
+                    .copyWith(color: AppColors.textMuted),
+              ),
+              style: AppTextStyles.body,
+            ),
+          ),
+          if (_searchController.text.isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                _searchController.clear();
+                setState(() {});
+              },
+              child: const Icon(Icons.close_rounded,
+                  size: 18, color: AppColors.textMuted),
+            ),
+        ],
+      ),
+    );
+
+    final sortDropdown = Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ProductSort>(
+          value: _sortOption,
+          icon: const Icon(Icons.expand_more_rounded,
+              size: 18, color: AppColors.textSecondary),
+          style: AppTextStyles.body,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          isExpanded: compact,
+          items: ProductSort.values
+              .map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s.label),
+                  ))
+              .toList(),
+          onChanged: (v) =>
+              setState(() => _sortOption = v ?? ProductSort.recentlyAdded),
+        ),
+      ),
+    );
+
+    if (compact) {
+      return Column(
+        children: [
+          searchField,
+          const SizedBox(height: AppSpacing.sm),
+          sortDropdown,
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Expanded(
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search_rounded,
-                    size: 18, color: AppColors.textMuted),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration.collapsed(
-                      hintText: 'Search product name...',
-                      hintStyle: AppTextStyles.body
-                          .copyWith(color: AppColors.textMuted),
-                    ),
-                    style: AppTextStyles.body,
-                  ),
-                ),
-                if (_searchController.text.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() {});
-                    },
-                    child: const Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.textMuted),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        Expanded(child: searchField),
         const SizedBox(width: AppSpacing.md),
-        Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<ProductSort>(
-              value: _sortOption,
-              icon: const Icon(Icons.expand_more_rounded,
-                  size: 18, color: AppColors.textSecondary),
-              style: AppTextStyles.body,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              items: ProductSort.values
-                  .map((s) => DropdownMenuItem(
-                        value: s,
-                        child: Text(s.label),
-                      ))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _sortOption = v ?? ProductSort.recentlyAdded),
-            ),
-          ),
-        ),
+        sortDropdown,
       ],
     );
   }
@@ -345,6 +363,90 @@ class _ProductTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 600;
+
+    if (compact) {
+      return _buildMobileList();
+    }
+    return _buildDesktopTable();
+  }
+
+  Widget _buildMobileList() {
+    return Column(
+      children: products.map((p) {
+        return Column(
+          children: [
+            InkWell(
+              onTap: () => onSelectProduct(p),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product name — full display, no ellipsis
+                    Text(
+                      p.productName,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: p.quantity <= 10
+                                ? AppColors.warningSoft
+                                : AppColors.successSoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${p.quantity} ${p.unit}',
+                            style: AppTextStyles.caption.copyWith(
+                              color: p.quantity <= 10
+                                  ? AppColors.warning
+                                  : AppColors.success,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => onEdit(p),
+                          icon: const Icon(Icons.edit_outlined,
+                              size: 18, color: AppColors.primary),
+                          splashRadius: 18,
+                          tooltip: 'Edit',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: () => onDelete(p),
+                          icon: const Icon(Icons.delete_outline_rounded,
+                              size: 18, color: AppColors.danger),
+                          splashRadius: 18,
+                          tooltip: 'Delete',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDesktopTable() {
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -391,7 +493,6 @@ class _ProductTable extends StatelessWidget {
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         SizedBox(

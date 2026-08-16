@@ -59,8 +59,12 @@ class ReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final compact = screenWidth < 600;
+    final horizontalPadding = compact ? 16.0 : 32.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -69,17 +73,20 @@ class ReportsScreen extends StatelessWidget {
             subtitle: 'Generate, filter, and export official warehouse reports for Celis Brothers Hardware.',
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildQuickExportBanner(context),
+          _buildQuickExportBanner(context, compact),
           const SizedBox(height: AppSpacing.lg),
           Text('Available Report Templates', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.md),
           LayoutBuilder(
             builder: (context, constraints) {
               int cols = 1;
+              double aspectRatio = 1.35;
               if (constraints.maxWidth > 1100) {
                 cols = 3;
+                aspectRatio = 1.6;
               } else if (constraints.maxWidth > 700) {
                 cols = 2;
+                aspectRatio = 1.5;
               }
               return GridView.builder(
                 shrinkWrap: true,
@@ -89,7 +96,7 @@ class ReportsScreen extends StatelessWidget {
                   crossAxisCount: cols,
                   crossAxisSpacing: AppSpacing.md,
                   mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 1.6,
+                  childAspectRatio: aspectRatio,
                 ),
                 itemBuilder: (context, i) => _ReportCard(
                   report: reportTemplates[i],
@@ -103,7 +110,51 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickExportBanner(BuildContext context) {
+  Widget _buildQuickExportBanner(BuildContext context, bool compact) {
+    if (compact) {
+      return SectionCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf_outlined,
+                      color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Official Branded Reports',
+                      style: AppTextStyles.h3.copyWith(fontSize: 16)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All exports include the Celis Brothers Hardware header, customizable date range, PDF print output, and CSV download.',
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                label: 'View Inventory Report',
+                icon: Icons.analytics_outlined,
+                onPressed: () => _openReport(context, reportTemplates[0]),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SectionCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(

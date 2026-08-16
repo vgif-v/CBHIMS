@@ -351,24 +351,28 @@ class _TransactionsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 500;
+
     return Column(
       children: [
-        // Header row.
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: Text('BILL NO.', style: AppTextStyles.label)),
-              Expanded(flex: 2, child: Text('TYPE', style: AppTextStyles.label)),
-              Expanded(
-                flex: 2,
-                child: Text('TOTAL ITEMS',
-                    textAlign: TextAlign.right, style: AppTextStyles.label),
-              ),
-            ],
+        if (!compact) ...[
+          // Header row.
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Row(
+              children: [
+                Expanded(flex: 3, child: Text('BILL NO.', style: AppTextStyles.label)),
+                Expanded(flex: 2, child: Text('TYPE', style: AppTextStyles.label)),
+                Expanded(
+                  flex: 2,
+                  child: Text('TOTAL ITEMS',
+                      textAlign: TextAlign.right, style: AppTextStyles.label),
+                ),
+              ],
+            ),
           ),
-        ),
-        const Divider(height: 0.6, thickness: 0.6),
+          const Divider(height: 0.6, thickness: 0.6),
+        ],
         // Data rows.
         ...transactions.expand((t) {
           final inbound = t.type.toLowerCase() == 'receive' ||
@@ -389,6 +393,63 @@ class _TransactionsTable extends StatelessWidget {
               if (!context.mounted) return;
               TransactionReceiptScreen.navigateTo(context, t);
             }
+          }
+
+          if (compact) {
+            return [
+              InkWell(
+                onTap: openDetails,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              t.billNo,
+                              style: AppTextStyles.mono.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          StatusBadge(
+                            label: inbound ? 'Receive' : 'Release',
+                            tone: inbound ? BadgeTone.success : BadgeTone.danger,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            '${t.totalItems} items',
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 0.6, thickness: 0.6),
+            ];
           }
 
           return [

@@ -287,8 +287,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _tab = 0;
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final compact = screenWidth < 600;
+    final horizontalPadding = compact ? 16.0 : 32.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 40),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 28, horizontalPadding, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -586,6 +590,64 @@ class _TeamMemberRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 500;
+
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.divider)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    member.initials.isNotEmpty ? member.initials : 'U',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(member.fullName,
+                      style: AppTextStyles.bodyMedium,
+                      overflow: TextOverflow.ellipsis),
+                ),
+                StatusBadge(label: member.role ?? 'None', tone: _tone),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(member.email,
+                      style: AppTextStyles.caption,
+                      overflow: TextOverflow.ellipsis),
+                ),
+                IconButton(
+                  onPressed: onEditRole,
+                  icon: const Icon(Icons.manage_accounts_rounded,
+                      size: 20, color: AppColors.primary),
+                  tooltip: 'Alter Role',
+                  splashRadius: 18,
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: const BoxDecoration(

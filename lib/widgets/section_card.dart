@@ -39,25 +39,45 @@ class ScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 500;
+
+        final titleColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AppTextStyles.h1),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle!,
+                  style: AppTextStyles.body
+                      .copyWith(color: AppColors.textSecondary)),
+            ],
+          ],
+        );
+
+        if (compact) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: AppTextStyles.h1),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(subtitle!,
-                    style: AppTextStyles.body
-                        .copyWith(color: AppColors.textSecondary)),
+              titleColumn,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                Wrap(spacing: AppSpacing.sm, children: actions),
               ],
             ],
-          ),
-        ),
-        if (actions.isNotEmpty) Wrap(spacing: AppSpacing.sm, children: actions),
-      ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleColumn),
+            if (actions.isNotEmpty)
+              Wrap(spacing: AppSpacing.sm, children: actions),
+          ],
+        );
+      },
     );
   }
 }

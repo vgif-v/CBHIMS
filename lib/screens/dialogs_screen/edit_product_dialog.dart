@@ -98,17 +98,20 @@ class _EditProductDialogState extends State<EditProductDialog> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final dialogWidth = width > 600 ? 520.0 : width * 0.92;
+    final compact = width < 600;
+    final dialogWidth = width > 600 ? 520.0 : width * 0.95;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 16)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 560),
+        constraints: BoxConstraints(maxHeight: compact ? MediaQuery.of(context).size.height * 0.88 : 560),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(compact ? 16 : 20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -120,11 +123,11 @@ class _EditProductDialogState extends State<EditProductDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildHeader(),
+            _buildHeader(compact),
             const Divider(height: 1, color: AppColors.border),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(28, 20, 28, 8),
+                padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 16, compact ? 16 : 28, 8),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -159,9 +162,12 @@ class _EditProductDialogState extends State<EditProductDialog> {
                                       inputFormatters: [
                                         FilteringTextInputFormatter.digitsOnly
                                       ],
-                                      validator: (v) => v == null || v.trim().isEmpty
-                                          ? 'Required'
-                                          : null,
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        return null;
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -266,37 +272,37 @@ class _EditProductDialogState extends State<EditProductDialog> {
               ),
             ),
             const Divider(height: 1, color: AppColors.border),
-            _buildActions(),
+            _buildActions(compact),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool compact) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 22, 16, 16),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, compact ? 16 : 22, compact ? 12 : 16, compact ? 12 : 16),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: compact ? 34 : 40,
+            height: compact ? 34 : 40,
             decoration: BoxDecoration(
               color: AppColors.warningSoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.edit_rounded,
-                color: AppColors.warning, size: 20),
+            child: Icon(Icons.edit_rounded,
+                color: AppColors.warning, size: compact ? 18 : 20),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Edit Product', style: AppTextStyles.h3),
+                Text('Edit Product', style: AppTextStyles.h3.copyWith(fontSize: compact ? 16 : 18)),
                 const SizedBox(height: 2),
                 Text('Update product details below.',
-                    style: AppTextStyles.caption),
+                    style: AppTextStyles.caption.copyWith(fontSize: compact ? 11 : 12)),
               ],
             ),
           ),
@@ -305,20 +311,22 @@ class _EditProductDialogState extends State<EditProductDialog> {
             icon: const Icon(Icons.close_rounded,
                 color: AppColors.textMuted, size: 20),
             splashRadius: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(bool compact) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 14, 28, 18),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 12, compact ? 16 : 28, compact ? 14 : 18),
       child: Row(
         children: [
           Expanded(
             child: SizedBox(
-              height: 46,
+              height: 44,
               child: OutlinedButton(
                 onPressed:
                     _loading ? null : () => Navigator.of(context).pop(false),
@@ -335,7 +343,7 @@ class _EditProductDialogState extends State<EditProductDialog> {
           const SizedBox(width: 12),
           Expanded(
             child: SizedBox(
-              height: 46,
+              height: 44,
               child: ElevatedButton(
                 onPressed: _loading ? null : _handleSubmit,
                 style: ElevatedButton.styleFrom(

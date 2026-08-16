@@ -134,9 +134,12 @@ class _BannerWidget extends StatelessWidget {
           parent: animation,
           curve: Curves.easeOutCubic,
         );
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isCompact = screenWidth < 420;
         return Positioned(
           top: 16 + MediaQuery.of(context).padding.top,
           right: 16,
+          left: isCompact ? 16 : null,
           child: SlideTransition(
             position: Tween<Offset>(
               begin: const Offset(1.2, 0),
@@ -152,7 +155,7 @@ class _BannerWidget extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 360, minWidth: 260),
+          constraints: BoxConstraints(maxWidth: (MediaQuery.of(context).size.width - 32).clamp(200, 360), minWidth: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: _bgColor,

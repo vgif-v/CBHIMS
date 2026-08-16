@@ -409,17 +409,20 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final dialogWidth = width > 900 ? 860.0 : width * 0.94;
+    final compact = width < 600;
+    final dialogWidth = width > 900 ? 860.0 : (compact ? width : width * 0.94);
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 16)
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 760),
+        constraints: BoxConstraints(maxHeight: compact ? MediaQuery.of(context).size.height * 0.92 : 760),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(compact ? 16 : 20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -431,35 +434,35 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildBrandedHeader(),
+            _buildBrandedHeader(compact),
             const Divider(height: 1, color: AppColors.border),
             if (widget.reportType != ReportType.specificItems) ...[
-              _buildDateRangeSelector(),
+              _buildDateRangeSelector(compact),
               const Divider(height: 1, color: AppColors.border),
             ],
             if (widget.reportType == ReportType.specificItems) ...[
-              _buildSpecificItemFilter(),
+              _buildSpecificItemFilter(compact),
             ],
             Expanded(child: _buildDataPreview()),
             const Divider(height: 1, color: AppColors.border),
-            _buildActions(),
+            _buildActions(compact),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBrandedHeader() {
+  Widget _buildBrandedHeader(bool compact) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 20, 20, 16),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, compact ? 14 : 20, compact ? 12 : 20, compact ? 12 : 16),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: compact ? 38 : 48,
+            height: compact ? 38 : 48,
             decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(compact ? 8 : 12),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.25),
@@ -469,39 +472,46 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(compact ? 8 : 12),
               child: Image.asset('assets/images/clogo.png', fit: BoxFit.cover),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text('Celis Brothers Hardware',
-                        style: AppTextStyles.h2.copyWith(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(6),
+                    Expanded(
+                      child: Text(
+                        'Celis Brothers Hardware',
+                        style: AppTextStyles.h2.copyWith(fontSize: compact ? 16 : 20),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Text('OFFICIAL REPORT',
-                          style: AppTextStyles.caption.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10)),
                     ),
+                    if (!compact) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text('OFFICIAL REPORT',
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10)),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(widget.reportTitle,
                     style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textSecondary)),
+                        .copyWith(color: AppColors.textSecondary, fontSize: compact ? 12 : 14)),
               ],
             ),
           ),
@@ -510,13 +520,66 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
             icon: const Icon(Icons.close_rounded,
                 color: AppColors.textMuted, size: 20),
             splashRadius: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDateRangeSelector() {
+  Widget _buildDateRangeSelector(bool compact) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: AppColors.background,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.date_range_rounded,
+                        size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text('Filter Date Range',
+                        style: AppTextStyles.caption
+                            .copyWith(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                Text(
+                  widget.reportType == ReportType.transactionMovement
+                      ? '${_filteredTransactions.length} transactions'
+                      : '${_filteredProducts.length} items',
+                  style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _dateButton(
+                      label: _dateFormat.format(_startDate), onTap: _selectStartDate),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6),
+                  child: Icon(Icons.arrow_forward_rounded,
+                      size: 14, color: AppColors.textMuted),
+                ),
+                Expanded(
+                  child: _dateButton(
+                      label: _dateFormat.format(_endDate), onTap: _selectEndDate),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
       color: AppColors.background,
@@ -549,7 +612,122 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     );
   }
 
-  Widget _buildSpecificItemFilter() {
+  Widget _buildSpecificItemFilter(bool compact) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 42,
+              child: TextField(
+                controller: _itemSearchController,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (val) => _addKeyword(val),
+                style: AppTextStyles.body
+                    .copyWith(color: AppColors.textPrimary, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search product name or brand...',
+                  hintStyle: AppTextStyles.body
+                      .copyWith(color: AppColors.textMuted, fontSize: 12),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      size: 18, color: AppColors.primary),
+                  suffixIcon: _itemSearchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 16),
+                          onPressed: () {
+                            _itemSearchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: ElevatedButton.icon(
+                onPressed: () => _addKeyword(),
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Add to Report'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            if (_searchKeywords.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Filters (${_searchKeywords.length}):',
+                    style: AppTextStyles.caption
+                        .copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _clearAllKeywords,
+                    child: Text('Clear All',
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.danger)),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _searchKeywords.map((kw) {
+                  return Chip(
+                    label: Text(kw,
+                        style: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                            fontSize: 11)),
+                    backgroundColor: AppColors.primarySoft,
+                    side: BorderSide.none,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    visualDensity: VisualDensity.compact,
+                    deleteIcon: const Icon(Icons.close_rounded,
+                        size: 12, color: AppColors.primary),
+                    onDeleted: () => _removeKeyword(kw),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(28, 14, 28, 14),
       decoration: const BoxDecoration(
@@ -684,8 +862,9 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label, style: AppTextStyles.bodyMedium),
+            Flexible(child: Text(label, style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 6),
             const Icon(Icons.calendar_today_rounded,
                 size: 13, color: AppColors.textMuted),
@@ -728,66 +907,74 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
       }
 
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Table(
-          border: TableBorder.all(color: AppColors.border, width: 1),
-          columnWidths: const {
-            0: FlexColumnWidth(2.5),
-            1: FlexColumnWidth(1.3),
-            2: FlexColumnWidth(1),
-            3: FlexColumnWidth(1.8),
-          },
-          children: [
-            const TableRow(
-              decoration: BoxDecoration(color: AppColors.neutralSoft),
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 500),
+            child: Table(
+              border: TableBorder.all(color: AppColors.border, width: 1),
+              columnWidths: const {
+                0: FlexColumnWidth(2.5),
+                1: FlexColumnWidth(1.3),
+                2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1.8),
+              },
               children: [
-                _TableCellHeader('BILL NO.'),
-                _TableCellHeader('TYPE'),
-                _TableCellHeader('ITEMS'),
-                _TableCellHeader('CREATED BY'),
+                const TableRow(
+                  decoration: BoxDecoration(color: AppColors.background),
+                  children: [
+                    _TableCellHeader('TRANSACTION / ITEM'),
+                    _TableCellHeader('TYPE'),
+                    _TableCellHeader('QTY'),
+                    _TableCellHeader('DATE / USER'),
+                  ],
+                ),
+                ...rows.map((row) {
+                  final t = row['transaction'] as Transaction;
+                  final inbound = t.type.toLowerCase() == 'receive' ||
+                      t.type.toLowerCase() == 'inbound' ||
+                      t.type.toLowerCase() == 'purchase';
+                  final dStr = t.createdAt != null
+                      ? _dateFormat.format(t.createdAt!)
+                      : 'N/A';
+                  return TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(t.billNo,
+                                style: AppTextStyles.bodyMedium
+                                    .copyWith(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      _TableCellWidget(StatusBadge(
+                          label: inbound ? 'RECEIVE' : 'RELEASE',
+                          tone: inbound
+                              ? BadgeTone.success
+                              : BadgeTone.danger)),
+                      _TableCellText('${t.totalItems}'),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(dStr, style: AppTextStyles.caption),
+                            Text(t.createdByName ?? 'User',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
-            ...rows.map((row) {
-              final t = row['transaction'] as Transaction;
-              final isInbound = t.type.toLowerCase() == 'receive' ||
-                  t.type.toLowerCase() == 'inbound' ||
-                  t.type.toLowerCase() == 'purchase';
-              final dStr = t.createdAt != null
-                  ? _dateFormat.format(t.createdAt!)
-                  : 'N/A';
-              return TableRow(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(t.billNo,
-                            style: AppTextStyles.bodyMedium
-                                .copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(dStr,
-                            style: AppTextStyles.caption.copyWith(
-                                fontSize: 11, color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ),
-                  _TableCellWidget(
-                    StatusBadge(
-                      label: isInbound ? 'RECEIVE' : 'RELEASE',
-                      tone: isInbound
-                          ? BadgeTone.success
-                          : BadgeTone.danger,
-                    ),
-                  ),
-                  _TableCellText('${t.totalItems}'),
-                  _TableCellText(t.createdByName ?? 'User'),
-                ],
-              );
-            }),
-          ],
+          ),
         ),
       );
     } else {
@@ -842,49 +1029,105 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
       }
 
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Table(
-          border: TableBorder.all(color: AppColors.border, width: 1),
-          columnWidths: const {
-            0: FlexColumnWidth(3),
-            1: FlexColumnWidth(1.5),
-            2: FlexColumnWidth(1.5),
-            3: FlexColumnWidth(2),
-          },
-          children: [
-            const TableRow(
-              decoration: BoxDecoration(color: AppColors.neutralSoft),
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 480),
+            child: Table(
+              border: TableBorder.all(color: AppColors.border, width: 1),
+              columnWidths: const {
+                0: FlexColumnWidth(2.8),
+                1: FlexColumnWidth(1),
+                2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1.4),
+              },
               children: [
-                _TableCellHeader('PRODUCT NAME'),
-                _TableCellHeader('IN STOCK'),
-                _TableCellHeader('UNIT'),
-                _TableCellHeader('STOCK STATUS'),
+                const TableRow(
+                  decoration: BoxDecoration(color: AppColors.background),
+                  children: [
+                    _TableCellHeader('PRODUCT NAME'),
+                    _TableCellHeader('QTY'),
+                    _TableCellHeader('UNIT'),
+                    _TableCellHeader('STOCK STATUS'),
+                  ],
+                ),
+                ...products.map((p) {
+                  final tone = p.quantity <= 0
+                      ? BadgeTone.danger
+                      : (p.quantity <= 10 ? BadgeTone.warning : BadgeTone.success);
+                  final statusStr = p.quantity <= 0
+                      ? 'Out of stock'
+                      : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
+
+                  return TableRow(
+                    children: [
+                      _TableCellText(p.productName, isBold: true),
+                      _TableCellText('${p.quantity}'),
+                      _TableCellText(p.unit),
+                      _TableCellWidget(StatusBadge(label: statusStr, tone: tone)),
+                    ],
+                  );
+                }),
               ],
             ),
-            ...products.map((p) {
-              final tone = p.quantity <= 0
-                  ? BadgeTone.danger
-                  : (p.quantity <= 10 ? BadgeTone.warning : BadgeTone.success);
-              final statusStr = p.quantity <= 0
-                  ? 'Out of stock'
-                  : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
-
-              return TableRow(
-                children: [
-                  _TableCellText(p.productName, isBold: true),
-                  _TableCellText('${p.quantity}'),
-                  _TableCellText(p.unit),
-                  _TableCellWidget(StatusBadge(label: statusStr, tone: tone)),
-                ],
-              );
-            }),
-          ],
+          ),
         ),
       );
     }
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(bool compact) {
+    if (compact) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: SecondaryButton(
+                      label: 'Export CSV',
+                      icon: Icons.table_chart_outlined,
+                      onPressed: _exportCsv,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: PrimaryButton(
+                      label: 'Export PDF',
+                      icon: Icons.picture_as_pdf_outlined,
+                      onPressed: _exportPdf,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Close', style: AppTextStyles.bodyMedium),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 14, 28, 18),
       child: Row(

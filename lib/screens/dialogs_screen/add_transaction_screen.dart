@@ -325,302 +325,361 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bill No
-              Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+          final padding = compact ? 16.0 : 20.0;
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(padding, 16, padding, 8),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: _buildField(
-                      label: 'Bill No. / Reference',
-                      child: TextFormField(
-                        controller: _billNoController,
-                        style: AppTextStyles.body
-                            .copyWith(color: AppColors.textPrimary),
-                        decoration: _inputDecoration('e.g. BILL-1001'),
-                        validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Required'
-                            : null,
-                      ),
+                  // Bill No
+                  _buildField(
+                    label: 'Bill No. / Reference',
+                    child: TextFormField(
+                      controller: _billNoController,
+                      style: AppTextStyles.body
+                          .copyWith(color: AppColors.textPrimary),
+                      decoration: _inputDecoration('e.g. BILL-1001'),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Required'
+                          : null,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-              // Remarks Row
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildField(
-                      label: 'Remarks (Optional)',
-                      child: TextFormField(
-                        controller: _remarksController,
-                        style: AppTextStyles.body
-                            .copyWith(color: AppColors.textPrimary),
-                        decoration: _inputDecoration('Notes / Purpose'),
-                      ),
+                  // Remarks Row
+                  _buildField(
+                    label: 'Remarks (Optional)',
+                    child: TextFormField(
+                      controller: _remarksController,
+                      style: AppTextStyles.body
+                          .copyWith(color: AppColors.textPrimary),
+                      decoration: _inputDecoration('Notes / Purpose'),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-              // Item List Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Items in Transaction', style: AppTextStyles.h3),
-                  TextButton.icon(
-                    onPressed: _addItemRow,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: Text('Add Another Item',
-                        style: AppTextStyles.bodyMedium
-                            .copyWith(color: AppColors.primary)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              if (_loadingProducts)
-                const Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (_allProducts.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.warningSoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
+                  // Item List Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: AppColors.warning),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'No products found in inventory. Please add products first before creating a transaction.',
-                          style: AppTextStyles.body,
+                      Text('Items in Transaction', style: AppTextStyles.h3.copyWith(fontSize: compact ? 16 : 18)),
+                      TextButton.icon(
+                        onPressed: _addItemRow,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: Text('Add Item',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.primary, fontSize: compact ? 13 : 14)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
                         ),
                       ),
                     ],
                   ),
-                )
-              else
-                ..._itemRows.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final row = entry.value;
+                  const SizedBox(height: 8),
 
-                  final selectedProduct = row.selectedProduct != null
-                      ? _allProducts.firstWhere(
-                          (p) => p.id == row.selectedProduct!.id,
-                          orElse: () => row.selectedProduct!,
-                        )
-                      : null;
-
-                  return Container(
-                    key: row.key,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: Autocomplete<Product>(
-                            displayStringForOption: (p) => p.productName,
-                            initialValue: TextEditingValue(
-                              text: selectedProduct?.productName ?? '',
+                  if (_loadingProducts)
+                    const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_allProducts.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningSoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              color: AppColors.warning),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No products found in inventory. Please add products first before creating a transaction.',
+                              style: AppTextStyles.body,
                             ),
-                            optionsBuilder: (TextEditingValue textValue) {
-                              if (textValue.text.isEmpty) {
-                                return _allProducts;
-                              }
-                              return _allProducts.where((p) => p.productName
-                                  .toLowerCase()
-                                  .contains(textValue.text.toLowerCase()));
-                            },
-                            onSelected: (Product p) {
-                              setState(() {
-                                final existingRow = _itemRows.firstWhere(
-                                  (r) => r != row && r.selectedProduct?.id == p.id,
-                                  orElse: () => _TxnItemRow(),
-                                );
-
-                                final foundDuplicate =
-                                    _itemRows.contains(existingRow) &&
-                                        existingRow != row;
-
-                                if (foundDuplicate) {
-                                  final thisQty = int.tryParse(
-                                          row.quantityController.text) ??
-                                      0;
-                                  final existingQty = int.tryParse(
-                                          existingRow.quantityController.text) ??
-                                      0;
-                                  existingRow.quantityController.text =
-                                      (existingQty + thisQty).toString();
-
-                                  _itemRows.remove(row);
-                                } else {
-                                  row.selectedProduct = p;
-                                }
-                              });
-                            },
-                            fieldViewBuilder:
-                                (context, controller, focusNode, onFieldSubmitted) {
-                              return TextFormField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                style: AppTextStyles.body
-                                    .copyWith(color: AppColors.textPrimary),
-                                decoration: _inputDecoration('Search product'),
-                              );
-                            },
-                            optionsViewBuilder: (context, onSelected, options) {
-                              return Align(
-                                alignment: Alignment.topLeft,
-                                child: Material(
-                                  elevation: 4,
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(maxHeight: 250),
-                                    child: ListView.builder(
-                                      padding: EdgeInsets.zero,
-                                      shrinkWrap: true,
-                                      itemCount: options.length,
-                                      itemBuilder: (context, index) {
-                                        final p = options.elementAt(index);
-                                        return ListTile(
-                                          title: Text(
-                                            '${p.productName} (${p.quantity} ${p.unit} in stock)',
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          onTap: () => onSelected(p),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 76,
-                              child: TextFormField(
-                                controller: row.quantityController,
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.body.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600),
-                                decoration: _inputDecoration('Qty'),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Container(
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                border: Border.all(color: AppColors.border),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  InkWell(
-                                    onTap: () {
-                                      final current = int.tryParse(
-                                              row.quantityController.text) ??
-                                          0;
-                                      row.quantityController.text =
-                                          (current + 1).toString();
-                                    },
-                                    borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(8)),
-                                    child: const SizedBox(
-                                      width: 28,
-                                      height: 22,
-                                      child: Icon(Icons.keyboard_arrow_up_rounded,
-                                          size: 18,
-                                          color: AppColors.textSecondary),
-                                    ),
-                                  ),
-                                  const Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: AppColors.border),
-                                  InkWell(
-                                    onTap: () {
-                                      final current = int.tryParse(
-                                              row.quantityController.text) ??
-                                          1;
-                                      if (current > 1) {
-                                        row.quantityController.text =
-                                            (current - 1).toString();
-                                      }
-                                    },
-                                    borderRadius: const BorderRadius.vertical(
-                                        bottom: Radius.circular(8)),
-                                    child: const SizedBox(
-                                      width: 28,
-                                      height: 22,
-                                      child: Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          size: 18,
-                                          color: AppColors.textSecondary),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_itemRows.length > 1) ...[
-                          const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: () => _removeItemRow(i),
-                            icon: const Icon(Icons.delete_outline_rounded,
-                                color: AppColors.danger, size: 20),
-                            splashRadius: 18,
-                            tooltip: 'Remove row',
                           ),
                         ],
-                      ],
-                    ),
-                  );
-                }),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+                      ),
+                    )
+                  else
+                    ..._itemRows.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final row = entry.value;
+
+                      final selectedProduct = row.selectedProduct != null
+                          ? _allProducts.firstWhere(
+                              (p) => p.id == row.selectedProduct!.id,
+                              orElse: () => row.selectedProduct!,
+                            )
+                          : null;
+
+                      final autocompleteWidget = Autocomplete<Product>(
+                        displayStringForOption: (p) => p.productName,
+                        initialValue: TextEditingValue(
+                          text: selectedProduct?.productName ?? '',
+                        ),
+                        optionsBuilder: (TextEditingValue textValue) {
+                          if (textValue.text.isEmpty) {
+                            return _allProducts;
+                          }
+                          return _allProducts.where((p) => p.productName
+                              .toLowerCase()
+                              .contains(textValue.text.toLowerCase()));
+                        },
+                        onSelected: (Product p) {
+                          setState(() {
+                            final existingRow = _itemRows.firstWhere(
+                              (r) => r != row && r.selectedProduct?.id == p.id,
+                              orElse: () => _TxnItemRow(),
+                            );
+
+                            final foundDuplicate =
+                                _itemRows.contains(existingRow) &&
+                                    existingRow != row;
+
+                            if (foundDuplicate) {
+                              final thisQty = int.tryParse(
+                                      row.quantityController.text) ??
+                                  0;
+                              final existingQty = int.tryParse(
+                                      existingRow.quantityController.text) ??
+                                  0;
+                              existingRow.quantityController.text =
+                                  (existingQty + thisQty).toString();
+
+                              _itemRows.remove(row);
+                            } else {
+                              row.selectedProduct = p;
+                            }
+                          });
+                        },
+                        fieldViewBuilder:
+                            (context, controller, focusNode, onFieldSubmitted) {
+                          return TextFormField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            style: AppTextStyles.body
+                                .copyWith(color: AppColors.textPrimary),
+                            decoration: _inputDecoration('Search product name...'),
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(12),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: 250,
+                                  maxWidth: compact ? (constraints.maxWidth - 32) : 400,
+                                ),
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  shrinkWrap: true,
+                                  itemCount: options.length,
+                                  itemBuilder: (context, index) {
+                                    final p = options.elementAt(index);
+                                    return ListTile(
+                                      title: Text(
+                                        p.productName,
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        'In stock: ${p.quantity} ${p.unit}',
+                                        style: AppTextStyles.caption.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      onTap: () => onSelected(p),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      final qtyStepperWidget = Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 68,
+                            child: TextFormField(
+                              controller: row.quantityController,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.body.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600),
+                              decoration: _inputDecoration('Qty'),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              border: Border.all(color: AppColors.border),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    final current = int.tryParse(
+                                            row.quantityController.text) ??
+                                        0;
+                                    row.quantityController.text =
+                                        (current + 1).toString();
+                                  },
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(8)),
+                                  child: const SizedBox(
+                                    width: 26,
+                                    height: 22,
+                                    child: Icon(Icons.keyboard_arrow_up_rounded,
+                                        size: 18,
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ),
+                                const Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: AppColors.border),
+                                InkWell(
+                                  onTap: () {
+                                    final current = int.tryParse(
+                                            row.quantityController.text) ??
+                                        1;
+                                    if (current > 1) {
+                                      row.quantityController.text =
+                                          (current - 1).toString();
+                                    }
+                                  },
+                                  borderRadius: const BorderRadius.vertical(
+                                      bottom: Radius.circular(8)),
+                                  child: const SizedBox(
+                                    width: 26,
+                                    height: 22,
+                                    child: Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 18,
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      if (compact) {
+                        return Container(
+                          key: row.key,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              autocompleteWidget,
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  qtyStepperWidget,
+                                  if (selectedProduct != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.neutralSoft,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Stock: ${selectedProduct.quantity} ${selectedProduct.unit}',
+                                        style: AppTextStyles.caption.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  if (_itemRows.length > 1)
+                                    IconButton(
+                                      onPressed: () => _removeItemRow(i),
+                                      icon: const Icon(Icons.delete_outline_rounded,
+                                          color: AppColors.danger, size: 20),
+                                      splashRadius: 18,
+                                      tooltip: 'Remove row',
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(6),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return Container(
+                        key: row.key,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 4,
+                              child: autocompleteWidget,
+                            ),
+                            const SizedBox(width: 12),
+                            qtyStepperWidget,
+                            if (_itemRows.length > 1) ...[
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: () => _removeItemRow(i),
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    color: AppColors.danger, size: 20),
+                                splashRadius: 18,
+                                tooltip: 'Remove row',
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          );
+        },
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(

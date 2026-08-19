@@ -13,13 +13,19 @@ import '../theme/app_theme.dart';
 import '../widgets/buttons.dart';
 import 'dialogs_screen/add_transaction_screen.dart';
 
+String _formatNum(num? val) {
+  if (val == null) return '';
+  if (val % 1 == 0) return val.toInt().toString();
+  return val.toString().replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
+}
+
 class _LedgerEntry {
   final Transaction transaction;
   final String billNo;
   final DateTime? date;
-  final int? receiveQty;
-  final int? releaseQty;
-  final int balance;
+  final double? receiveQty;
+  final double? releaseQty;
+  final double balance;
 
   _LedgerEntry({
     required this.transaction,
@@ -29,6 +35,10 @@ class _LedgerEntry {
     required this.releaseQty,
     required this.balance,
   });
+
+  String get formattedReceive => receiveQty != null ? _formatNum(receiveQty) : '';
+  String get formattedRelease => releaseQty != null ? _formatNum(releaseQty) : '';
+  String get formattedBalance => _formatNum(balance);
 }
 
 class ProductLedgerScreen extends StatefulWidget {
@@ -98,11 +108,11 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
           await TransactionService.instance.getByProductId(_product.id!);
 
       // Calculate total net change across all recorded transactions
-      int totalNetChange = 0;
-      final List<({Transaction txn, int qty, bool isReceive, int delta})> deltas = [];
+      double totalNetChange = 0.0;
+      final List<({Transaction txn, double qty, bool isReceive, double delta})> deltas = [];
 
       for (final t in txns) {
-        int itemQty = 0;
+        double itemQty = 0.0;
         for (final item in t.items) {
           if (item.productId == _product.id ||
               item.productName.trim().toLowerCase() ==
@@ -111,7 +121,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
           }
         }
         if (itemQty == 0) {
-          itemQty = t.totalItems > 0 ? t.totalItems : 1;
+          itemQty = t.totalItems > 0 ? t.totalItems : 1.0;
         }
 
         final isReceive = t.type.toLowerCase() == 'receive' ||
@@ -124,7 +134,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
       }
 
       // Replay from initial opening stock to guarantee the latest balance matches current stock
-      int runningBalance = _product.quantity - totalNetChange;
+      double runningBalance = _product.quantity - totalNetChange;
       final List<_LedgerEntry> computed = [];
 
       for (final d in deltas) {
@@ -186,9 +196,9 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
       return [
         e.billNo,
         dStr,
-        e.receiveQty != null ? '+${e.receiveQty}' : '',
-        e.releaseQty != null ? '-${e.releaseQty}' : '',
-        '${e.balance}',
+        e.receiveQty != null ? '+${e.formattedReceive}' : '',
+        e.releaseQty != null ? '-${e.formattedRelease}' : '',
+        e.formattedBalance,
       ];
     }).toList();
 
@@ -685,7 +695,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
                                                   child: entry.receiveQty !=
                                                           null
                                                       ? Text(
-                                                          '+${entry.receiveQty}',
+                                                          '+${entry.formattedReceive}',
                                                           textAlign:
                                                               TextAlign.center,
                                                           style: AppTextStyles
@@ -706,7 +716,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
                                                   child: entry.releaseQty !=
                                                           null
                                                       ? Text(
-                                                          '-${entry.releaseQty}',
+                                                          '-${entry.formattedRelease}',
                                                           textAlign:
                                                               TextAlign.center,
                                                           style: AppTextStyles
@@ -725,7 +735,7 @@ class _ProductLedgerScreenState extends State<ProductLedgerScreen> {
                                                 SizedBox(
                                                   width: 90,
                                                   child: Text(
-                                                    '${entry.balance}',
+                                                    entry.formattedBalance,
                                                     textAlign: TextAlign.right,
                                                     style: AppTextStyles
                                                         .bodyMedium

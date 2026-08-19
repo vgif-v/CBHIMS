@@ -64,7 +64,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return Transaction(
           billNo: p.billNo,
           type: p.type,
-          totalItems: p.items.fold<int>(0, (sum, item) => sum + item.quantity),
+          totalItems: p.items.fold<double>(0.0, (sum, item) => sum + item.quantity),
           remarks: p.remarks,
           createdBy: p.userId,
           createdAt: p.queuedAt,
@@ -165,9 +165,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         title:
             Text('Delete Transaction ${txn.billNo}?', style: AppTextStyles.h3),
         content: Text(
-          'This will permanently delete this transaction and its items. '
-          'This action cannot be undone and does NOT reverse stock — '
-          'cancel the transaction first if you need stock reversed.',
+          'This will permanently delete this transaction and its items, '
+          'and automatically reverse the stock quantities back to inventory.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -490,7 +489,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '${t.totalItems} total items',
+                            '${t.formattedTotalItems} total items',
                             style: AppTextStyles.caption.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
@@ -622,7 +621,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '${t.totalItems}',
+                        t.formattedTotalItems,
                         textAlign: TextAlign.right,
                         style: AppTextStyles.bodyMedium,
                       ),

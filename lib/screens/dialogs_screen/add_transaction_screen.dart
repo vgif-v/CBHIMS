@@ -15,8 +15,8 @@ class _TxnItemRow {
   Product? selectedProduct;
   final TextEditingController quantityController;
 
-  _TxnItemRow({int initialQty = 1})
-      : quantityController = TextEditingController(text: '$initialQty');
+  _TxnItemRow({String initialQty = '1'})
+      : quantityController = TextEditingController(text: initialQty);
 
   void dispose() {
     quantityController.dispose();
@@ -105,8 +105,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _billNoController.dispose();
     _remarksController.dispose();
-    for (var item in _itemRows) {
-      item.dispose();
+    for (final row in _itemRows) {
+      row.dispose();
     }
     super.dispose();
   }
@@ -120,10 +120,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         _loadingProducts = false;
 
         if (_itemRows.isEmpty) {
-          final existing = widget.existingTransaction;
-          if (existing != null && existing.items.isNotEmpty) {
-            for (final item in existing.items) {
-              final row = _TxnItemRow(initialQty: item.quantity);
+          if (_isEditMode &&
+              widget.existingTransaction!.items.isNotEmpty) {
+            for (final item in widget.existingTransaction!.items) {
+              final row = _TxnItemRow(
+                initialQty: item.formattedQuantity,
+              );
               if (item.productId != null) {
                 for (final p in products) {
                   if (p.id == item.productId) {
@@ -184,7 +186,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         return;
       }
 
-      final qty = int.tryParse(row.quantityController.text.trim()) ?? 0;
+      final allowsDecimals = row.selectedProduct!.unit.trim().toLowerCase() == 'kg' ||
+          row.selectedProduct!.unit.trim().toLowerCase() == 'cubic';
+
+      final rawQty = row.quantityController.text.trim().replaceAll(',', '.');
+      if (!allowsDecimals && rawQty.contains(RegExp(r'[\.,]'))) {
+        NotificationBanner.show(
+          context,
+          '${row.selectedProduct!.productName} (${row.selectedProduct!.unit}) only accepts whole numbers.',
+          tone: NotificationTone.warning,
+        );
+        return;
+      }
+
+      final parsedQty = double.tryParse(rawQty) ?? 0.0;
+      final qty = allowsDecimals ? parsedQty : parsedQty.truncateToDouble();
       if (qty <= 0) {
         NotificationBanner.show(
           context,
@@ -199,7 +215,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           qty > row.selectedProduct!.quantity) {
         NotificationBanner.show(
           context,
-          'Warning: ${row.selectedProduct!.productName} only has ${row.selectedProduct!.quantity} in stock.',
+          'Warning: ${row.selectedProduct!.productName} only has ${row.selectedProduct!.formattedQuantity} ${row.selectedProduct!.unit} in stock.',
           tone: NotificationTone.warning,
         );
       }
@@ -498,12 +514,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                         ),
                                       ),
                                       subtitle: Text(
-                                        'In stock: ${p.quantity} ${p.unit}',
+                                        'In stock: ${p.formattedQuantity} ${p.unit}',
                                         style: AppTextStyles.caption.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
                                       ),
-                                      onTap: () => onSelected(p),
+                                      onTap: () {
+                                        final allowsDecimals = p.unit.trim().toLowerCase() == 'kg' ||
+                                            p.unit.trim().toLowerCase() == 'cubic';
+                                        if (!allowsDecimals) {
+                                          final raw = row.quantityController.text.trim().replaceAll(',', '.');
+                                          final val = double.tryParse(raw);
+                                          if (val != null) {
+                                            row.quantityController.text = val.toInt().toString();
+                                          }
+                                        }
+                                        onSelected(p);
+                                      },
                                     );
                                   },
                                 ),
@@ -512,6 +539,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           );
                         },
                       );
+
+                      final allowsDecimals = row.selectedProduct != null &&
+                          (row.selectedProduct!.unit.trim().toLowerCase() == 'kg' ||
+                           row.selectedProduct!.unit.trim().toLowerCase() == 'cubic');
 
                       final qtyStepperWidget = Row(
                         mainAxisSize: MainAxisSize.min,
@@ -525,9 +556,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w600),
                               decoration: _inputDecoration('Qty'),
-                              keyboardType: TextInputType.number,
+                              keyboardType: allowsDecimals
+                                  ? const TextInputType.numberWithOptions(decimal: true)
+                                  : TextInputType.number,
                               inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly
+                                if (allowsDecimals)
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d*[\.,]?\d*'))
+                                else
+                                  FilteringTextInputFormatter.digitsOnly,
                               ],
                             ),
                           ),
@@ -544,11 +581,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    final current = int.tryParse(
-                                            row.quantityController.text) ??
-                                        0;
-                                    row.quantityController.text =
-                                        (current + 1).toString();
+                                    final raw = row.quantityController.text.trim().replaceAll(',', '.');
+                                    final current = double.tryParse(raw) ?? 0.0;
+                                    final next = current + 1.0;
+                                    row.quantityController.text = next % 1 == 0
+                                        ? next.toInt().toString()
+                                        : next.toString();
                                   },
                                   borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(8)),
@@ -566,12 +604,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                     color: AppColors.border),
                                 InkWell(
                                   onTap: () {
-                                    final current = int.tryParse(
-                                            row.quantityController.text) ??
-                                        1;
-                                    if (current > 1) {
-                                      row.quantityController.text =
-                                          (current - 1).toString();
+                                    final raw = row.quantityController.text.trim().replaceAll(',', '.');
+                                    final current = double.tryParse(raw) ?? 1.0;
+                                    if (current > 1.0) {
+                                      final next = current - 1.0;
+                                      row.quantityController.text = next % 1 == 0
+                                          ? next.toInt().toString()
+                                          : next.toString();
                                     }
                                   },
                                   borderRadius: const BorderRadius.vertical(
@@ -619,7 +658,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        'Stock: ${selectedProduct.quantity} ${selectedProduct.unit}',
+                                        'Stock: ${selectedProduct.formattedQuantity} ${selectedProduct.unit}',
                                         style: AppTextStyles.caption.copyWith(
                                           fontWeight: FontWeight.w600,
                                         ),

@@ -110,13 +110,16 @@ class ProductService {
   /// "not enough stock" message instead of waiting for the transaction to
   /// fail server-side. This is a courtesy check only — it is NOT what
   /// prevents overselling; adjust_product_quantity() is (see below).
-  Future<int> getCurrentQuantity(int id) async {
+  Future<double> getCurrentQuantity(int id) async {
     final row = await _client
         .from('products')
         .select('quantity')
         .eq('id', id)
         .single();
-    return row['quantity'] as int? ?? 0;
+    final q = row['quantity'];
+    if (q is num) return q.toDouble();
+    if (q is String) return double.tryParse(q.replaceAll(',', '.')) ?? 0.0;
+    return 0.0;
   }
 
   /// Atomically adjusts product quantity and refuses to let it go
@@ -129,7 +132,7 @@ class ProductService {
   /// Throws [InsufficientStockException] if quantityChange would take
   /// stock below zero (e.g. issuing more than what's in stock). Positive
   /// quantityChange (inbound) always succeeds.
-  Future<void> updateQuantity(int id, int quantityChange) async {
+  Future<void> updateQuantity(int id, double quantityChange) async {
     try {
       await _client.rpc('adjust_product_quantity', params: {
         'p_product_id': id,

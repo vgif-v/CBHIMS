@@ -33,6 +33,7 @@ flutter:
   assets:
     - .env
     - assets/images/
+    - shorebird.yaml
   uses-material-design: true
 
 flutter_launcher_icons:

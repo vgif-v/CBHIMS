@@ -201,8 +201,8 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
       ..sort((a, b) => (a.createdAt ?? DateTime(1970))
           .compareTo(b.createdAt ?? DateTime(1970)));
 
-    int running = 0;
-    final Map<dynamic, int> balanceMap = {};
+    double running = 0.0;
+    final Map<dynamic, double> balanceMap = {};
     for (int i = 0; i < sorted.length; i++) {
       final t = sorted[i];
       final isReceive = t.type.toLowerCase() == 'receive' ||
@@ -220,7 +220,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
     final filtered = _filteredTransactions;
     return filtered.map((t) {
       final key = t.id ?? t.billNo;
-      final bal = balanceMap[key] ?? 0;
+      final bal = balanceMap[key] ?? 0.0;
       return {
         'transaction': t,
         'balance': bal,
@@ -262,7 +262,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         return [
           '${t.billNo}\n$dStr',
           t.type.toUpperCase(),
-          '${t.totalItems}',
+          t.formattedTotalItems,
           t.createdByName ?? 'User',
         ];
       }).toList();
@@ -279,7 +279,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
             : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
         return [
           p.productName,
-          '${p.quantity}',
+          p.formattedQuantity,
           p.unit,
           statusStr,
         ];
@@ -386,7 +386,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
         final dStr =
             t.createdAt != null ? _dateFormat.format(t.createdAt!) : 'N/A';
         csvBuffer.writeln(
-            '"${t.billNo}","${t.type}","${t.totalItems}","${t.createdByName ?? ''}","$dStr"');
+            '"${t.billNo}","${t.type}","${t.formattedTotalItems}","${t.createdByName ?? ''}","$dStr"');
       }
     } else {
       csvBuffer.writeln('"Product Name","Quantity","Unit","Stock Status"');
@@ -395,7 +395,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
             ? 'Out of stock'
             : (p.quantity <= 10 ? 'Low stock' : 'Healthy');
         csvBuffer.writeln(
-            '"${p.productName}","${p.quantity}","${p.unit}","$statusStr"');
+            '"${p.productName}","${p.formattedQuantity}","${p.unit}","$statusStr"');
       }
     }
 
@@ -1063,7 +1063,7 @@ class _ReportDetailDialogState extends State<ReportDetailDialog> {
                   return TableRow(
                     children: [
                       _TableCellText(p.productName, isBold: true),
-                      _TableCellText('${p.quantity}'),
+                      _TableCellText(p.formattedQuantity),
                       _TableCellText(p.unit),
                       _TableCellWidget(StatusBadge(label: statusStr, tone: tone)),
                     ],

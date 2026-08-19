@@ -36,9 +36,15 @@ class _AddProductDialogState extends State<AddProductDialog> {
   String _selectedUnit = 'pcs';
   bool _loading = false;
 
+  bool get _allowsDecimals {
+    final u = _selectedUnit.trim().toLowerCase();
+    return u == 'kg' || u == 'cubic';
+  }
+
   static const _units = [
     'pcs',
     'kg',
+    'cubic',
     'box',
     'pack',
     'meter',
@@ -71,9 +77,12 @@ class _AddProductDialogState extends State<AddProductDialog> {
 
     setState(() => _loading = true);
     try {
+      final qtyText = _quantityController.text.trim().replaceAll(',', '.');
+      final parsedQty = double.tryParse(qtyText) ?? 0.0;
+      final finalQty = _allowsDecimals ? parsedQty : parsedQty.truncateToDouble();
       final product = Product(
         productName: _nameController.text.trim(),
-        quantity: int.tryParse(_quantityController.text.trim()) ?? 0,
+        quantity: finalQty,
         unit: _selectedUnit,
         remarks: _remarksController.text.trim(),
       );
@@ -118,7 +127,9 @@ class _AddProductDialogState extends State<AddProductDialog> {
           : const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         width: dialogWidth,
-        constraints: BoxConstraints(maxHeight: compact ? MediaQuery.of(context).size.height * 0.88 : 620),
+        constraints: BoxConstraints(
+            maxHeight:
+                compact ? MediaQuery.of(context).size.height * 0.88 : 620),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(compact ? 16 : 20),
@@ -137,7 +148,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
             const Divider(height: 1, color: AppColors.border),
             Flexible(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 16, compact ? 16 : 28, 8),
+                padding: EdgeInsets.fromLTRB(
+                    compact ? 16 : 28, 16, compact ? 16 : 28, 8),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -165,16 +177,35 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                   Expanded(
                                     child: TextFormField(
                                       controller: _quantityController,
-                                      style: AppTextStyles.body
-                                          .copyWith(color: AppColors.textPrimary),
+                                      style: AppTextStyles.body.copyWith(
+                                          color: AppColors.textPrimary),
                                       decoration: _inputDecoration('0'),
-                                      keyboardType: TextInputType.number,
+                                      keyboardType: _allowsDecimals
+                                          ? const TextInputType.numberWithOptions(
+                                              decimal: true)
+                                          : TextInputType.number,
                                       inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly
+                                        if (_allowsDecimals)
+                                          FilteringTextInputFormatter.allow(
+                                              RegExp(r'^\d*[\.,]?\d*'))
+                                        else
+                                          FilteringTextInputFormatter.digitsOnly,
                                       ],
                                       validator: (v) {
                                         if (v == null || v.trim().isEmpty) {
                                           return 'Required';
+                                        }
+                                        if (_allowsDecimals) {
+                                          final parsed = double.tryParse(
+                                              v.trim().replaceAll(',', '.'));
+                                          if (parsed == null || parsed < 0) {
+                                            return 'Invalid';
+                                          }
+                                        } else {
+                                          final parsed = int.tryParse(v.trim());
+                                          if (parsed == null || parsed < 0) {
+                                            return 'Whole numbers only';
+                                          }
                                         }
                                         return null;
                                       },
@@ -185,22 +216,30 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                     height: 48,
                                     decoration: BoxDecoration(
                                       color: AppColors.surface,
-                                      border: Border.all(color: AppColors.border),
+                                      border:
+                                          Border.all(color: AppColors.border),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         InkWell(
                                           onTap: () {
-                                            final current = int.tryParse(
-                                                    _quantityController.text) ??
-                                                0;
+                                            final raw = _quantityController.text
+                                                .trim()
+                                                .replaceAll(',', '.');
+                                            final current =
+                                                double.tryParse(raw) ?? 0.0;
+                                            final next = current + 1.0;
                                             _quantityController.text =
-                                                (current + 1).toString();
+                                                next % 1 == 0
+                                                    ? next.toInt().toString()
+                                                    : next.toString();
                                           },
-                                          borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(8)),
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                  top: Radius.circular(8)),
                                           child: const SizedBox(
                                             width: 28,
                                             height: 22,
@@ -216,21 +255,29 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                             color: AppColors.border),
                                         InkWell(
                                           onTap: () {
-                                            final current = int.tryParse(
-                                                    _quantityController.text) ??
-                                                0;
+                                            final raw = _quantityController.text
+                                                .trim()
+                                                .replaceAll(',', '.');
+                                            final current =
+                                                double.tryParse(raw) ?? 0.0;
                                             if (current > 0) {
+                                              final next = (current - 1.0)
+                                                  .clamp(0.0, double.infinity);
                                               _quantityController.text =
-                                                  (current - 1).toString();
+                                                  next % 1 == 0
+                                                      ? next.toInt().toString()
+                                                      : next.toString();
                                             }
                                           },
-                                          borderRadius: const BorderRadius.vertical(
-                                              bottom: Radius.circular(8)),
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                  bottom: Radius.circular(8)),
                                           child: const SizedBox(
                                             width: 28,
                                             height: 22,
                                             child: Icon(
-                                                Icons.keyboard_arrow_down_rounded,
+                                                Icons
+                                                    .keyboard_arrow_down_rounded,
                                                 size: 18,
                                                 color: AppColors.textSecondary),
                                           ),
@@ -256,8 +303,22 @@ class _AddProductDialogState extends State<AddProductDialog> {
                                     .map((u) => DropdownMenuItem(
                                         value: u, child: Text(u)))
                                     .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _selectedUnit = v ?? 'pcs'),
+                                onChanged: (v) {
+                                  final newUnit = v ?? 'pcs';
+                                  setState(() {
+                                    _selectedUnit = newUnit;
+                                    if (!_allowsDecimals) {
+                                      final raw = _quantityController.text
+                                          .trim()
+                                          .replaceAll(',', '.');
+                                      final val = double.tryParse(raw);
+                                      if (val != null) {
+                                        _quantityController.text =
+                                            val.toInt().toString();
+                                      }
+                                    }
+                                  });
+                                },
                               ),
                             ),
                           ),
@@ -290,7 +351,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
 
   Widget _buildHeader(bool compact) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, compact ? 16 : 22, compact ? 12 : 16, compact ? 12 : 16),
+      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, compact ? 16 : 22,
+          compact ? 12 : 16, compact ? 12 : 16),
       child: Row(
         children: [
           Container(
@@ -308,11 +370,13 @@ class _AddProductDialogState extends State<AddProductDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Add New Product', style: AppTextStyles.h3.copyWith(fontSize: compact ? 16 : 18)),
+                Text('Add New Product',
+                    style:
+                        AppTextStyles.h3.copyWith(fontSize: compact ? 16 : 18)),
                 const SizedBox(height: 2),
-                Text(
-                    'Fill in product details.',
-                    style: AppTextStyles.caption.copyWith(fontSize: compact ? 11 : 12)),
+                Text('Fill in product details.',
+                    style: AppTextStyles.caption
+                        .copyWith(fontSize: compact ? 11 : 12)),
               ],
             ),
           ),
@@ -331,7 +395,8 @@ class _AddProductDialogState extends State<AddProductDialog> {
 
   Widget _buildActions(bool compact) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(compact ? 16 : 28, 12, compact ? 16 : 28, compact ? 14 : 18),
+      padding: EdgeInsets.fromLTRB(
+          compact ? 16 : 28, 12, compact ? 16 : 28, compact ? 14 : 18),
       child: Row(
         children: [
           Expanded(

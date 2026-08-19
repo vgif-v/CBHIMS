@@ -62,8 +62,8 @@ class InsufficientStockError implements Exception {
 class StockShortfall {
   final int productId;
   final String? productName;
-  final int requested;
-  final int available;
+  final double requested;
+  final double available;
   StockShortfall({
     required this.productId,
     required this.available,
@@ -478,7 +478,7 @@ class TransactionService {
         id: null,
         billNo: billNo,
         type: type,
-        totalItems: items.fold<int>(0, (sum, item) => sum + item.quantity),
+        totalItems: items.fold<double>(0.0, (sum, item) => sum + item.quantity),
         remarks: (remarks != null && remarks.trim().isNotEmpty)
             ? remarks.trim()
             : 'N/A',
@@ -502,7 +502,8 @@ class TransactionService {
     String? issuedTo,
     String? userId,
   }) async {
-    final totalItems = items.fold<int>(0, (sum, item) => sum + item.quantity);
+    final totalItems =
+        items.fold<double>(0.0, (sum, item) => sum + item.quantity);
 
     final String finalIssuedTo =
         (issuedTo != null && issuedTo.trim().isNotEmpty)
@@ -765,7 +766,8 @@ class TransactionService {
       }
     }
 
-    final totalItems = items.fold<int>(0, (sum, item) => sum + item.quantity);
+    final totalItems =
+        items.fold<double>(0.0, (sum, item) => sum + item.quantity);
 
     final String finalIssuedTo =
         (issuedTo != null && issuedTo.trim().isNotEmpty)
@@ -819,8 +821,39 @@ class TransactionService {
     return getById(transactionId);
   }
 
-  /// Permanently delete a transaction and its items without modifying product stock.
+  /// Permanently delete a transaction and its items, automatically reversing product stock.
   Future<void> deleteTransaction(int transactionId) async {
+    // 1. Fetch original transaction before deletion to revert stock impact
+    Transaction? txn;
+    try {
+      txn = await getById(transactionId);
+    } catch (e) {
+      debugPrint(
+          '[TransactionService] Could not fetch transaction to reverse stock: $e');
+    }
+
+    if (txn != null) {
+      final productService = ProductService.instance;
+      final isReceive = txn.type.toLowerCase() == 'receive' ||
+          txn.type.toLowerCase() == 'inbound' ||
+          txn.type.toLowerCase() == 'purchase';
+
+      for (final item in txn.items) {
+        if (item.productId != null) {
+          // If transaction was Receive, deleting it should reduce stock (-quantity).
+          // If transaction was Release, deleting it should restore stock (+quantity).
+          final revertDelta = isReceive ? -item.quantity : item.quantity;
+          try {
+            await productService.updateQuantity(item.productId!, revertDelta);
+          } catch (e) {
+            debugPrint(
+                '[TransactionService] Error reverting stock for item ${item.productId}: $e');
+          }
+        }
+      }
+    }
+
+    // 2. Delete transaction items and transaction row
     try {
       await _client
           .from('transaction_items')
@@ -828,7 +861,6 @@ class TransactionService {
           .eq('transaction_id', transactionId);
     } catch (e) {
       debugPrint('[TransactionService] Failed to delete transaction_items: $e');
-      rethrow;
     }
 
     await _client.from('transactions').delete().eq('id', transactionId);

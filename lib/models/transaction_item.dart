@@ -3,7 +3,7 @@ class TransactionItem {
   final int? transactionId;
   final int? productId;
   final String productName;
-  final int quantity;
+  final double quantity;
   final String unit;
 
   const TransactionItem({
@@ -16,24 +16,40 @@ class TransactionItem {
   });
 
   factory TransactionItem.fromJson(Map<String, dynamic> json) {
-    int parseNum(dynamic val) {
+    double parseDouble(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) {
+        return double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
+      }
+      return 0.0;
+    }
+
+    int? parseInt(dynamic val) {
       if (val is int) return val;
       if (val is num) return val.toInt();
-      if (val is String) return int.tryParse(val) ?? 0;
-      return 0;
+      if (val is String) return int.tryParse(val);
+      return null;
     }
 
     return TransactionItem(
-      id: json['id'] != null ? parseNum(json['id']) : null,
+      id: json['id'] != null ? parseInt(json['id']) : null,
       transactionId: json['transaction_id'] != null
-          ? parseNum(json['transaction_id'])
+          ? parseInt(json['transaction_id'])
           : null,
       productId:
-          json['product_id'] != null ? parseNum(json['product_id']) : null,
+          json['product_id'] != null ? parseInt(json['product_id']) : null,
       productName: json['product_name']?.toString() ?? 'Item',
-      quantity: parseNum(json['quantity']),
+      quantity: parseDouble(json['quantity']),
       unit: json['unit']?.toString() ?? 'pcs',
     );
+  }
+
+  /// Formatted string representing quantity without unnecessary trailing zeroes.
+  String get formattedQuantity {
+    if (quantity % 1 == 0) {
+      return quantity.toInt().toString();
+    }
+    return quantity.toString().replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
   }
 
   Map<String, dynamic> toInsertJson(int txnId) {

@@ -31,10 +31,16 @@ class TransactionReceiptScreen extends StatefulWidget {
       _TransactionReceiptScreenState();
 }
 
+String _formatNum(num? val) {
+  if (val == null) return '-';
+  if (val % 1 == 0) return val.toInt().toString();
+  return val.toString().replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
+}
+
 class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   late Transaction transaction;
   bool _loadingItems = true;
-  Map<int, int> _productBalances = {};
+  Map<int, double> _productBalances = {};
 
   // Pre-cached assets for fast PDF generation
   pw.MemoryImage? _cachedLogoImage;
@@ -43,31 +49,30 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   void initState() {
     super.initState();
     transaction = widget.transaction;
-    _initialize();
+    _initData();
   }
 
-  Future<void> _initialize() async {
-    // Pre-cache the logo image for PDF
+  Future<void> _initData() async {
     try {
       final logoBytes = await rootBundle.load('assets/images/clogo.png');
       _cachedLogoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
     } catch (e) {
-      debugPrint('[Receipt] Could not load logo: $e');
+      debugPrint('[Receipt] Logo load error: $e');
     }
+    await _loadFullTransaction();
+  }
 
-    // Always fetch fresh from DB to get items with product names
+  Future<void> _loadFullTransaction() async {
     if (transaction.id != null) {
       try {
         final fullTxn =
             await TransactionService.instance.getById(transaction.id!);
-        if (!mounted) return;
-        setState(() {
-          transaction = fullTxn;
-        });
-        await _loadProductBalances();
-        if (!mounted) return;
-        setState(() => _loadingItems = false);
-        return;
+        if (mounted) {
+          setState(() {
+            transaction = fullTxn;
+            _loadingItems = false;
+          });
+        }
       } catch (e) {
         debugPrint('[Receipt] Failed to load full transaction: $e');
       }
@@ -80,13 +85,13 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
   }
 
   Future<void> _loadProductBalances() async {
-    final balances = <int, int>{};
+    final balances = <int, double>{};
     for (final item in transaction.items) {
       if (item.productId != null && !balances.containsKey(item.productId)) {
         try {
           final product = await ProductService.instance.getById(item.productId!);
           if (product != null) {
-            balances[item.productId!] = product.quantity;
+            balances[item.productId!] = product.quantity.toDouble();
           }
         } catch (_) {}
       }
@@ -110,18 +115,18 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
         final idx = entry.key + 1;
         final item = entry.value;
         final bal = (item.productId != null && _productBalances.containsKey(item.productId))
-            ? '${_productBalances[item.productId]}'
+            ? _formatNum(_productBalances[item.productId])
             : '-';
         return [
           '$idx',
           item.productName.isNotEmpty ? item.productName : 'Item #$idx',
-          '${item.quantity}',
+          item.formattedQuantity,
           bal,
         ];
       }).toList();
     } else {
       dataRows = [
-        ['1', 'General Stock', '${transaction.totalItems}', '-']
+        ['1', 'General Stock', transaction.formattedTotalItems, '-']
       ];
     }
 
@@ -555,7 +560,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              'Qty: ${item.quantity}',
+                                              'Qty: ${item.formattedQuantity}',
                                               style: AppTextStyles.caption.copyWith(
                                                 color: AppColors.primary,
                                                 fontWeight: FontWeight.bold,
@@ -563,7 +568,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                             ),
                                           ),
                                           Text(
-                                            'Balance: ${(item.productId != null && _productBalances.containsKey(item.productId)) ? '${_productBalances[item.productId]}' : '-'}',
+                                            'Balance: ${(item.productId != null && _productBalances.containsKey(item.productId)) ? _formatNum(_productBalances[item.productId]) : '-'}',
                                             style: AppTextStyles.caption.copyWith(
                                               color: AppColors.textSecondary,
                                               fontWeight: FontWeight.w500,
@@ -595,7 +600,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                     SizedBox(
                                       width: 80,
                                       child: Text(
-                                        '${item.quantity}',
+                                        item.formattedQuantity,
                                         textAlign: TextAlign.right,
                                         style: AppTextStyles.bodyLarge
                                             .copyWith(fontWeight: FontWeight.bold),
@@ -605,7 +610,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                                       width: 80,
                                       child: Text(
                                         (item.productId != null && _productBalances.containsKey(item.productId))
-                                            ? '${_productBalances[item.productId]}'
+                                            ? _formatNum(_productBalances[item.productId])
                                             : '-',
                                         textAlign: TextAlign.right,
                                         style: AppTextStyles.bodyMedium,
@@ -631,7 +636,7 @@ class _TransactionReceiptScreenState extends State<TransactionReceiptScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Total: ${transaction.totalItems}',
+                          'Total: ${transaction.formattedTotalItems}',
                           style:
                               AppTextStyles.h3.copyWith(color: AppColors.primary, fontSize: compact ? 16 : 18),
                         ),

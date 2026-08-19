@@ -404,7 +404,7 @@ class _ProductTable extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '${p.quantity} ${p.unit}',
+                            '${p.formattedQuantity} ${p.unit}',
                             style: AppTextStyles.caption.copyWith(
                               color: p.quantity <= 10
                                   ? AppColors.warning
@@ -498,7 +498,7 @@ class _ProductTable extends StatelessWidget {
                         SizedBox(
                           width: _stockColumnWidth,
                           child: Text(
-                            '${p.quantity} ${p.unit}',
+                            '${p.formattedQuantity} ${p.unit}',
                             textAlign: TextAlign.right,
                             style: AppTextStyles.bodyMedium,
                           ),

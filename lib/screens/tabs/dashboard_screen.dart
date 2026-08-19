@@ -52,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Transaction(
           billNo: p.billNo,
           type: p.type,
-          totalItems: p.items.fold<int>(0, (sum, item) => sum + item.quantity),
+          totalItems: p.items.fold<double>(0.0, (sum, item) => sum + item.quantity),
           remarks: p.remarks,
           createdBy: p.userId,
           createdAt: p.queuedAt,

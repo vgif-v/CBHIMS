@@ -3,7 +3,7 @@ class Product {
   final String productName;
   final int? categoryId;
   final String? categoryName; // joined from categories table
-  final int quantity;
+  final double quantity;
   final String unit;
   final bool isActive;
   final String? remarks;
@@ -14,7 +14,7 @@ class Product {
     required this.productName,
     this.categoryId,
     this.categoryName,
-    this.quantity = 0,
+    this.quantity = 0.0,
     this.unit = 'pcs',
     this.isActive = true,
     this.remarks,
@@ -27,12 +27,20 @@ class Product {
       catName = json['categories']['name'] as String?;
     }
 
+    double parseQty(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) {
+        return double.tryParse(val.replaceAll(',', '.')) ?? 0.0;
+      }
+      return 0.0;
+    }
+
     return Product(
       id: json['id'] as int?,
       productName: json['product_name'] as String? ?? '',
       categoryId: json['category_id'] as int?,
       categoryName: catName,
-      quantity: json['quantity'] as int? ?? 0,
+      quantity: parseQty(json['quantity']),
       unit: json['unit'] as String? ?? 'pcs',
       isActive: json['is_active'] as bool? ?? true,
       remarks: json['remarks'] as String?,
@@ -40,6 +48,14 @@ class Product {
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
     );
+  }
+
+  /// Formatted string representing quantity without unnecessary trailing zeroes.
+  String get formattedQuantity {
+    if (quantity % 1 == 0) {
+      return quantity.toInt().toString();
+    }
+    return quantity.toString().replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
   }
 
   /// Serializes fields for INSERT / UPDATE.
@@ -59,7 +75,7 @@ class Product {
     String? productName,
     int? categoryId,
     String? categoryName,
-    int? quantity,
+    double? quantity,
     String? unit,
     bool? isActive,
     String? remarks,

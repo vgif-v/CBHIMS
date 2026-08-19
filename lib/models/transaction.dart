@@ -4,7 +4,7 @@ class Transaction {
   final int? id;
   final String billNo;
   final String type; // 'Receive' or 'Release'
-  final int totalItems;
+  final double totalItems;
   final String? remarks;
   final String? createdBy; // UUID of the user
   final String? createdByName; // joined from users table
@@ -26,7 +26,7 @@ class Transaction {
     this.id,
     required this.billNo,
     required this.type,
-    this.totalItems = 0,
+    this.totalItems = 0.0,
     this.remarks,
     this.createdBy,
     this.createdByName,
@@ -60,19 +60,21 @@ class Transaction {
       }
     }
 
-    int parsedTotalItems = 0;
+    double parsedTotalItems = 0.0;
     if (json['total_items'] != null) {
-      if (json['total_items'] is int) {
-        parsedTotalItems = json['total_items'] as int;
-      } else if (json['total_items'] is num) {
-        parsedTotalItems = (json['total_items'] as num).toInt();
-      } else {
-        parsedTotalItems = int.tryParse(json['total_items'].toString()) ?? 0;
+      if (json['total_items'] is num) {
+        parsedTotalItems = (json['total_items'] as num).toDouble();
+      } else if (json['total_items'] is String) {
+        parsedTotalItems =
+            double.tryParse((json['total_items'] as String).replaceAll(',', '.')) ??
+                0.0;
       }
     }
 
     return Transaction(
-      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? ''),
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse(json['id']?.toString() ?? ''),
       billNo: json['bill_no']?.toString() ?? '',
       type: json['type']?.toString() ?? 'Receive',
       totalItems: parsedTotalItems,
@@ -85,6 +87,14 @@ class Transaction {
       localId: null,
       isPendingSync: false,
     );
+  }
+
+  /// Formatted string representing totalItems without unnecessary trailing zeroes.
+  String get formattedTotalItems {
+    if (totalItems % 1 == 0) {
+      return totalItems.toInt().toString();
+    }
+    return totalItems.toString().replaceAll(RegExp(r'([.]*0)(?!.*\d)'), '');
   }
 
   Map<String, dynamic> toInsertJson() {

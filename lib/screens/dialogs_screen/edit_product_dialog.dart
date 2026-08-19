@@ -31,10 +31,15 @@ class _EditProductDialogState extends State<EditProductDialog> {
   late final TextEditingController _remarksController;
   late String _selectedUnit;
   bool _loading = false;
+  bool get _allowsDecimals {
+    final u = _selectedUnit.trim().toLowerCase();
+    return u == 'kg' || u == 'cubic';
+  }
 
   static const _units = [
     'pcs',
     'kg',
+    'cubic',
     'box',
     'pack',
     'meter',
@@ -50,7 +55,7 @@ class _EditProductDialogState extends State<EditProductDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.product.productName);
     _quantityController =
-        TextEditingController(text: widget.product.quantity.toString());
+        TextEditingController(text: widget.product.formattedQuantity);
     _remarksController =
         TextEditingController(text: widget.product.remarks ?? '');
     _selectedUnit = widget.product.unit;
@@ -69,9 +74,12 @@ class _EditProductDialogState extends State<EditProductDialog> {
 
     setState(() => _loading = true);
     try {
+      final qtyText = _quantityController.text.trim().replaceAll(',', '.');
+      final parsedQty = double.tryParse(qtyText) ?? 0.0;
+      final finalQty = _allowsDecimals ? parsedQty : parsedQty.truncateToDouble();
       await ProductService.instance.update(widget.product.id!, {
         'product_name': _nameController.text.trim(),
-        'quantity': int.tryParse(_quantityController.text.trim()) ?? 0,
+        'quantity': finalQty,
         'unit': _selectedUnit,
         'remarks': _remarksController.text.trim(),
       });
@@ -151,84 +159,105 @@ class _EditProductDialogState extends State<EditProductDialog> {
                             child: _buildField(
                               label: 'Quantity',
                               child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _quantityController,
-                                      style: AppTextStyles.body
-                                          .copyWith(color: AppColors.textPrimary),
-                                      decoration: _inputDecoration('0'),
-                                      keyboardType: TextInputType.number,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly
-                                      ],
-                                      validator: (v) {
-                                        if (v == null || v.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      border: Border.all(color: AppColors.border),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        InkWell(
-                                          onTap: () {
-                                            final current = int.tryParse(
-                                                    _quantityController.text) ??
-                                                0;
-                                            _quantityController.text =
-                                                (current + 1).toString();
-                                          },
-                                          borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(8)),
-                                          child: const SizedBox(
-                                            width: 28,
-                                            height: 22,
-                                            child: Icon(
-                                                Icons.keyboard_arrow_up_rounded,
-                                                size: 18,
-                                                color: AppColors.textSecondary),
-                                          ),
-                                        ),
-                                        const Divider(
-                                            height: 1,
-                                            thickness: 1,
-                                            color: AppColors.border),
-                                        InkWell(
-                                          onTap: () {
-                                            final current = int.tryParse(
-                                                    _quantityController.text) ??
-                                                0;
-                                            if (current > 0) {
-                                              _quantityController.text =
-                                                  (current - 1).toString();
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _quantityController,
+                                        style: AppTextStyles.body
+                                            .copyWith(color: AppColors.textPrimary),
+                                        decoration: _inputDecoration('0'),
+                                        keyboardType: _allowsDecimals
+                                            ? const TextInputType.numberWithOptions(
+                                                decimal: true)
+                                            : TextInputType.number,
+                                        inputFormatters: [
+                                          if (_allowsDecimals)
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(r'^\d*[\.,]?\d*'))
+                                          else
+                                            FilteringTextInputFormatter.digitsOnly,
+                                        ],
+                                        validator: (v) {
+                                          if (v == null || v.trim().isEmpty) {
+                                            return 'Required';
+                                          }
+                                          if (_allowsDecimals) {
+                                            final parsed = double.tryParse(
+                                                v.trim().replaceAll(',', '.'));
+                                            if (parsed == null || parsed < 0) {
+                                              return 'Invalid';
                                             }
-                                          },
-                                          borderRadius: const BorderRadius.vertical(
-                                              bottom: Radius.circular(8)),
-                                          child: const SizedBox(
-                                            width: 28,
-                                            height: 22,
-                                            child: Icon(
-                                                Icons.keyboard_arrow_down_rounded,
-                                                size: 18,
-                                                color: AppColors.textSecondary),
-                                          ),
-                                        ),
-                                      ],
+                                          } else {
+                                            final parsed = int.tryParse(v.trim());
+                                            if (parsed == null || parsed < 0) {
+                                              return 'Whole numbers only';
+                                            }
+                                          }
+                                          return null;
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface,
+                                        border: Border.all(color: AppColors.border),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              final raw = _quantityController.text.trim().replaceAll(',', '.');
+                                              final current = double.tryParse(raw) ?? 0.0;
+                                              final next = current + 1.0;
+                                              _quantityController.text = next % 1 == 0
+                                                  ? next.toInt().toString()
+                                                  : next.toString();
+                                            },
+                                            borderRadius: const BorderRadius.vertical(
+                                                top: Radius.circular(8)),
+                                            child: const SizedBox(
+                                              width: 28,
+                                              height: 22,
+                                              child: Icon(
+                                                  Icons.keyboard_arrow_up_rounded,
+                                                  size: 18,
+                                                  color: AppColors.textSecondary),
+                                            ),
+                                          ),
+                                          const Divider(
+                                              height: 1,
+                                              thickness: 1,
+                                              color: AppColors.border),
+                                          InkWell(
+                                            onTap: () {
+                                              final raw = _quantityController.text.trim().replaceAll(',', '.');
+                                              final current = double.tryParse(raw) ?? 0.0;
+                                              if (current > 0) {
+                                                final next = (current - 1.0).clamp(0.0, double.infinity);
+                                                _quantityController.text = next % 1 == 0
+                                                    ? next.toInt().toString()
+                                                    : next.toString();
+                                              }
+                                            },
+                                            borderRadius: const BorderRadius.vertical(
+                                                bottom: Radius.circular(8)),
+                                            child: const SizedBox(
+                                              width: 28,
+                                              height: 22,
+                                              child: Icon(
+                                                  Icons.keyboard_arrow_down_rounded,
+                                                  size: 18,
+                                                  color: AppColors.textSecondary),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                               ),
                             ),
                           ),
@@ -248,8 +277,22 @@ class _EditProductDialogState extends State<EditProductDialog> {
                                     .map((u) => DropdownMenuItem(
                                         value: u, child: Text(u)))
                                     .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _selectedUnit = v ?? 'pcs'),
+                                onChanged: (v) {
+                                  final newUnit = v ?? 'pcs';
+                                  setState(() {
+                                    _selectedUnit = newUnit;
+                                    if (!_allowsDecimals) {
+                                      final raw = _quantityController.text
+                                          .trim()
+                                          .replaceAll(',', '.');
+                                      final val = double.tryParse(raw);
+                                      if (val != null) {
+                                        _quantityController.text =
+                                            val.toInt().toString();
+                                      }
+                                    }
+                                  });
+                                },
                               ),
                             ),
                           ),
